@@ -1,5 +1,6 @@
 ### Makefile for compilation of analysis macros
-### to be copied into
+### to be copied into the analysis directory
+### and perhaps edited to correct the FWK_BASE_DIR
 
 FWK_BASE_DIR = ..
 ROOOPT = 
