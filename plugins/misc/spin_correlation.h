@@ -213,14 +213,12 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   const TLorentzVector p4hel_pLep = f_zmf_top(p4lab_pLep, p4hel_aTop);
 
   // calculating the top-beam angle for pTop only (defining pP as the +z beam proton)
-  const Number cpTP = p4hel_pTop.Vect().Unit().Dot(zBase);
-  const Number spTP = std::sqrt(1. - (cpTP * cpTP));
-
   static const int icpTP = index_with_key(m_spin_corr, "cpTP");
-  m_spin_corr[icpTP].second = cpTP;
+  m_spin_corr[icpTP].second = p4hel_pTop.Vect().Unit().Dot(zBase);
+  const Number spTP = std::sqrt(1. - (m_spin_corr[icpTP].second * m_spin_corr[icpTP].second));
 
   // the signs needed to account for Bose symmetry
-  const Number sY = (cpTP >= 0.) ? 1. : -1.;
+  const Number sY = (m_spin_corr[icpTP].second >= 0.) ? 1. : -1.;
   const Number sD = ( std::abs(p4lab_pTop.Rapidity()) >= std::abs(p4lab_aTop.Rapidity()) ) ? 1. : -1.;
 
   // define the base vectors a
@@ -228,7 +226,7 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   // b is always -a
   const TVector3 kBase = p4hel_pTop.Vect().Unit();
   const TVector3 jBase = sD * kBase;
-  const TVector3 rBase = ( (sY / spTP) * (zBase - (cpTP * kBase)) ).Unit();
+  const TVector3 rBase = ( (sY / spTP) * (zBase - (m_spin_corr[icpTP].second * kBase)) ).Unit();
   const TVector3 qBase = sD * rBase;
   const TVector3 nBase = ( (sY / spTP) * zBase.Cross(kBase) ).Unit();
 
