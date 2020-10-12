@@ -4,8 +4,8 @@
 
 template <typename Tree>
 Framework::Dataset<Tree>::Dataset(const std::string &name_, const std::string &tree_name_, 
-                                  const std::string &tree_struct_, char tree_delim_,
-                                  const std::vector<std::string> &v_file_) :
+                                  const std::string &tree_struct_ /*= ""*/, char tree_delim_ /*= ' '*/,
+                                  const std::vector<std::string> &v_file_ /*= {}*/) :
   name(name_),
   tree_name(tree_name_),
   tree_struct(tree_struct_),
@@ -54,7 +54,7 @@ void Framework::Dataset<Tree>::set_delimiter(char tree_delim_)
 
 
 template <typename Tree>
-void Framework::Dataset<Tree>::set_files(const std::vector<std::string> &v_file_, int nfile, bool force_replace)
+void Framework::Dataset<Tree>::set_files(const std::vector<std::string> &v_file_, int nfile /*= -1*/, bool force_replace /*= false*/)
 {
   if (v_file_.empty())
     return;
@@ -174,7 +174,7 @@ double Framework::Dataset<Tree>::get_weight(const std::string &wgt_name) const
 
 
 template <>
-void Framework::Dataset<TChain>::evaluate(int index)
+void Framework::Dataset<TChain>::evaluate(int index /*= 0*/)
 {
   if (tree_ptr == nullptr) {
     tree_ptr = std::make_unique<TChain>(tree_name.c_str());
@@ -193,7 +193,7 @@ void Framework::Dataset<TChain>::evaluate(int index)
 
 
 template <>
-void Framework::Dataset<TTree>::evaluate(int index)
+void Framework::Dataset<TTree>::evaluate(int index /*= 0*/)
 {
   static bool flag_struct = false;
   if (!flag_struct and tree_struct == "") {
@@ -266,7 +266,7 @@ void Framework::Dataset<Tree>::set_analyzer(Analyzer analyzer_)
 
 
 template <typename Tree>
-void Framework::Dataset<Tree>::analyze(long long total, long long skip) const
+void Framework::Dataset<Tree>::analyze(long long total /*= -1LL*/, long long skip /*= -1LL*/) const
 {
   if (tree_ptr == nullptr)
     throw std::runtime_error( "ERROR: Dataset::analyze should not be called before assigning the files to be analyzed!!" );
@@ -279,10 +279,12 @@ void Framework::Dataset<Tree>::analyze(long long total, long long skip) const
 
   const auto dEvt = (total > 0LL and total <= tree_ptr->GetEntries()) ? total : tree_ptr->GetEntries();
   std::cout << "Processing " << dEvt << " events..." << std::endl;
-  if (skip > 0LL)
+
+  const bool doskip = skip > 0LL and skip < total;
+  if (doskip)
     std::cout << "Skipping " << skip << " events..." << std::endl;
 
-  for (auto cEvt = (skip > 0LL) ? skip : 0LL; cEvt < dEvt; ++cEvt)
+  for (auto cEvt = (doskip) ? skip : 0LL; cEvt < dEvt; ++cEvt)
     analyzer(current_entry(cEvt));
   std::cout << "Processed " << dEvt << " events!" << std::endl;
 }

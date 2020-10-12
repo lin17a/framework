@@ -54,9 +54,11 @@ namespace Framework {
     TTree *ptr;
 
     /// storage of source groups and the branches they contribute
-    /// source group stored as functions (with lambda captures) to avoid shenanigans with differing group types
+    /// tl;dr in a given tree, each group must be unique (checked by name) and either one of make_x_branches is called for it exactly once
+    /// more info: source group stored as functions (with lambda captures) to avoid shenanigans with differing group types
     /// the function is called whenever reallocation is needed
-    /// the string is for the group name, to forbid calls like so:
+    /// the string is the group name, to ensure that for a given group, only the first call to make_x_branches is registered
+    /// this is to make no-op calls like so:
     /// make_single_branches(group, attrs1...); make_array_branches(group, attrs2...);
     /// which, even if technically legit, is gonna be very confusing
     /// similarly, don't do:

@@ -2,7 +2,7 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-Framework::Tree::Tree(const std::string &filename, const std::string &treename, int compression)
+Framework::Tree::Tree(const std::string &filename, const std::string &treename, int compression /*= 505*/)
 {
   file = std::make_unique<TFile>(filename.c_str(), "recreate", "", compression);
   file->cd();

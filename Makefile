@@ -1,5 +1,5 @@
 ### Makefile for compilation of analysis macros
-### to be copied into the analysis directory
+### to be copied into the analysis directory or used with make -f <this Makefile location>
 ### and perhaps edited to correct the FWK_BASE_DIR
 
 FWK_BASE_DIR = ..
