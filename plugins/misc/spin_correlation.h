@@ -19,8 +19,10 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static std::vector<std::pair<std::string, Number>> m_spin_corr;
   static int initialize = 0;
   if (initialize == 0) {
-    m_spin_corr.reserve(96); // exact size
+    m_spin_corr.reserve(98); // exact size
     m_spin_corr.emplace_back("cLab", -9999.);
+
+    m_spin_corr.emplace_back("cpTP", -9999.);
 
     m_spin_corr.emplace_back("kdx", -9999.);
     m_spin_corr.emplace_back("kdy", -9999.);
@@ -159,6 +161,8 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
     m_spin_corr.emplace_back("phi0", -9999.);
     m_spin_corr.emplace_back("phi1", -9999.);
 
+    m_spin_corr.emplace_back("cpTTT", -9999.);
+
     ++initialize;
   }
 
@@ -174,15 +178,15 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   arg[8]  = pLep_pt; arg[9]  = pLep_eta; arg[10] = pLep_phi; arg[11] = pLep_m;
   arg[12] = aLep_pt; arg[13] = aLep_eta; arg[14] = aLep_phi; arg[15] = aLep_m;
 
-  static TLorentzVector p4_pTop, p4_aTop, p4_pLep, p4_aLep;
-  p4_pTop.SetPtEtaPhiM(arg[0],  arg[1],  arg[2],  arg[3]);
-  p4_aTop.SetPtEtaPhiM(arg[4],  arg[5],  arg[6],  arg[7]);
-  p4_pLep.SetPtEtaPhiM(arg[8],  arg[9],  arg[10], arg[11]);
-  p4_aLep.SetPtEtaPhiM(arg[12], arg[13], arg[14], arg[15]);
+  static TLorentzVector p4lab_pTop, p4lab_aTop, p4lab_pLep, p4lab_aLep;
+  p4lab_pTop.SetPtEtaPhiM(arg[0],  arg[1],  arg[2],  arg[3]);
+  p4lab_aTop.SetPtEtaPhiM(arg[4],  arg[5],  arg[6],  arg[7]);
+  p4lab_pLep.SetPtEtaPhiM(arg[8],  arg[9],  arg[10], arg[11]);
+  p4lab_aLep.SetPtEtaPhiM(arg[12], arg[13], arg[14], arg[15]);
 
   // computes spin correlation variables
   static const int icLab = index_with_key(m_spin_corr, "cLab");
-  m_spin_corr[icLab].second = p4_aLep.Vect().Unit().Dot( p4_pLep.Vect().Unit() );
+  m_spin_corr[icLab].second = p4lab_aLep.Vect().Unit().Dot( p4lab_pLep.Vect().Unit() );
 
   // the various spin corr vars with boosting: Bernreuther 1508.05271
   // xyz coordinate system
@@ -190,39 +194,60 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static const TVector3 yBase(0., 1., 0.);
   static const TVector3 zBase(0., 0., 1.);
 
-  const TLorentzVector p4_TT( p4_pTop + p4_aTop );
+  // the necessary boosting such that lepton ~ top spin vector
+  const TLorentzVector p4lab_TT( p4lab_pTop + p4lab_aTop );
 
+  const auto f_zmf_tt = [&p4lab_TT] (TLorentzVector p4) {
+    p4.Boost( -1. * p4lab_TT.BoostVector() );
+    return p4;
+  };
+  const TLorentzVector p4hel_pTop = f_zmf_tt(p4lab_pTop);
+  const TLorentzVector p4hel_aTop = f_zmf_tt(p4lab_aTop);
+
+  const auto f_zmf_top = [&f_zmf_tt] (const TLorentzVector &lep, const TLorentzVector &top) {
+    auto p4 = f_zmf_tt(lep);
+    p4.Boost( -1. * top.BoostVector() );
+    return p4;
+  };
+  const TLorentzVector p4hel_aLep = f_zmf_top(p4lab_aLep, p4hel_pTop);
+  const TLorentzVector p4hel_pLep = f_zmf_top(p4lab_pLep, p4hel_aTop);
+
+  /*
   // should be const-ized, but Boost() doesn't work with copy ctors...
-  TLorentzVector b4_pTop( p4_pTop );
-  b4_pTop.Boost( -1. * p4_TT.BoostVector() );
+  TLorentzVector p4hel_pTop( p4lab_pTop );
+  p4hel_pTop.Boost( -1. * p4lab_TT.BoostVector() );
 
-  TLorentzVector b4_aTop( p4_aTop );
-  b4_aTop.Boost( -1. * p4_TT.BoostVector() );
+  TLorentzVector p4hel_aTop( p4lab_aTop );
+  p4hel_aTop.Boost( -1. * p4lab_TT.BoostVector() );
 
-  TLorentzVector b4_aLep( p4_aLep );
-  b4_aLep.Boost( -1. * p4_TT.BoostVector() );
-  b4_aLep.Boost( -1. * b4_pTop.BoostVector() );
+  TLorentzVector p4hel_aLep( p4lab_aLep );
+  p4hel_aLep.Boost( -1. * p4lab_TT.BoostVector() );
+  p4hel_aLep.Boost( -1. * p4hel_pTop.BoostVector() );
 
-  TLorentzVector b4_pLep( p4_pLep );
-  b4_pLep.Boost( -1. * p4_TT.BoostVector() );
-  b4_pLep.Boost( -1. * b4_aTop.BoostVector() );
+  TLorentzVector p4hel_pLep( p4lab_pLep );
+  p4hel_pLep.Boost( -1. * p4lab_TT.BoostVector() );
+  p4hel_pLep.Boost( -1. * p4hel_aTop.BoostVector() );
+  */
 
   // calculating the top-beam angle for pTop only (defining pP as the +z beam proton)
-  const Number c_pTP = b4_pTop.Vect().Unit().Dot(zBase);
-  const Number s_pTP = std::sqrt(1. - (c_pTP * c_pTP));
+  const Number cpTP = p4hel_pTop.Vect().Unit().Dot(zBase);
+  const Number spTP = std::sqrt(1. - (cpTP * cpTP));
+
+  static const int icpTP = index_with_key(m_spin_corr, "cpTP");
+  m_spin_corr[icpTP].second = cpTP;
 
   // the signs needed to account for Bose symmetry
-  const Number sY = (c_pTP >= 0.) ? 1. : -1.;
-  const Number sD = ( std::abs(p4_pTop.Rapidity()) >= std::abs(p4_aTop.Rapidity()) ) ? 1. : -1.;
+  const Number sY = (cpTP >= 0.) ? 1. : -1.;
+  const Number sD = ( std::abs(p4lab_pTop.Rapidity()) >= std::abs(p4lab_aTop.Rapidity()) ) ? 1. : -1.;
 
   // define the base vectors a
   // j and q base are the k* and r* respectively
   // b is always -a
-  const TVector3 kBase = b4_pTop.Vect().Unit();
+  const TVector3 kBase = p4hel_pTop.Vect().Unit();
   const TVector3 jBase = sD * kBase;
-  const TVector3 rBase = ( (sY / s_pTP) * (zBase - (c_pTP * kBase)) ).Unit();
+  const TVector3 rBase = ( (sY / spTP) * (zBase - (cpTP * kBase)) ).Unit();
   const TVector3 qBase = sD * rBase;
-  const TVector3 nBase = ( (sY / s_pTP) * zBase.Cross(kBase) ).Unit();
+  const TVector3 nBase = ( (sY / spTP) * zBase.Cross(kBase) ).Unit();
 
   // for resolution studies
   // naming eg ndx for n dot x -> x component of the n axis
@@ -275,29 +300,29 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static const int ib1z = index_with_key(m_spin_corr, "b1z");
   static const int ib2z = index_with_key(m_spin_corr, "b2z");
 
-  m_spin_corr[ib1k].second = b4_aLep.Vect().Unit().Dot( kBase );
-  m_spin_corr[ib2k].second = b4_pLep.Vect().Unit().Dot( -1. * kBase );
+  m_spin_corr[ib1k].second = p4hel_aLep.Vect().Unit().Dot( kBase );
+  m_spin_corr[ib2k].second = p4hel_pLep.Vect().Unit().Dot( -1. * kBase );
 
-  m_spin_corr[ib1j].second = b4_aLep.Vect().Unit().Dot( jBase );
-  m_spin_corr[ib2j].second = b4_pLep.Vect().Unit().Dot( -1. * jBase );
+  m_spin_corr[ib1j].second = p4hel_aLep.Vect().Unit().Dot( jBase );
+  m_spin_corr[ib2j].second = p4hel_pLep.Vect().Unit().Dot( -1. * jBase );
 
-  m_spin_corr[ib1r].second = b4_aLep.Vect().Unit().Dot( rBase );
-  m_spin_corr[ib2r].second = b4_pLep.Vect().Unit().Dot( -1. * rBase );
+  m_spin_corr[ib1r].second = p4hel_aLep.Vect().Unit().Dot( rBase );
+  m_spin_corr[ib2r].second = p4hel_pLep.Vect().Unit().Dot( -1. * rBase );
 
-  m_spin_corr[ib1q].second = b4_aLep.Vect().Unit().Dot( qBase );
-  m_spin_corr[ib2q].second = b4_pLep.Vect().Unit().Dot( -1. * qBase );
+  m_spin_corr[ib1q].second = p4hel_aLep.Vect().Unit().Dot( qBase );
+  m_spin_corr[ib2q].second = p4hel_pLep.Vect().Unit().Dot( -1. * qBase );
 
-  m_spin_corr[ib1n].second = b4_aLep.Vect().Unit().Dot( nBase );
-  m_spin_corr[ib2n].second = b4_pLep.Vect().Unit().Dot( -1. * nBase );
+  m_spin_corr[ib1n].second = p4hel_aLep.Vect().Unit().Dot( nBase );
+  m_spin_corr[ib2n].second = p4hel_pLep.Vect().Unit().Dot( -1. * nBase );
 
-  m_spin_corr[ib1x].second = b4_aLep.Vect().Unit().Dot( xBase );
-  m_spin_corr[ib2x].second = b4_pLep.Vect().Unit().Dot( -1. * xBase );
+  m_spin_corr[ib1x].second = p4hel_aLep.Vect().Unit().Dot( xBase );
+  m_spin_corr[ib2x].second = p4hel_pLep.Vect().Unit().Dot( -1. * xBase );
 
-  m_spin_corr[ib1y].second = b4_aLep.Vect().Unit().Dot( yBase );
-  m_spin_corr[ib2y].second = b4_pLep.Vect().Unit().Dot( -1. * yBase );
+  m_spin_corr[ib1y].second = p4hel_aLep.Vect().Unit().Dot( yBase );
+  m_spin_corr[ib2y].second = p4hel_pLep.Vect().Unit().Dot( -1. * yBase );
 
-  m_spin_corr[ib1z].second = b4_aLep.Vect().Unit().Dot( zBase );
-  m_spin_corr[ib2z].second = b4_pLep.Vect().Unit().Dot( -1. * zBase );
+  m_spin_corr[ib1z].second = p4hel_aLep.Vect().Unit().Dot( zBase );
+  m_spin_corr[ib2z].second = p4hel_pLep.Vect().Unit().Dot( -1. * zBase );
 
   // sums and differences of the polarization angles
   static const int ibPkk = index_with_key(m_spin_corr, "bPkk");
@@ -440,7 +465,7 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
 
   // opening angle between the spin vectors
   static const int icHel = index_with_key(m_spin_corr, "cHel");
-  m_spin_corr[icHel].second = b4_aLep.Vect().Unit().Dot( b4_pLep.Vect().Unit() );
+  m_spin_corr[icHel].second = p4hel_aLep.Vect().Unit().Dot( p4hel_pLep.Vect().Unit() );
 
   // cHel with one spin vector flipped about a given axis
   // useful to measure Cii = 1.5(Di - D)
@@ -504,7 +529,7 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static const int irNorm = index_with_key(m_spin_corr, "rNorm");
   static const int inNorm = index_with_key(m_spin_corr, "nNorm");
 
-  const TVector3 llNorm = b4_aLep.Vect().Unit().Cross( b4_pLep.Vect().Unit() );
+  const TVector3 llNorm = p4hel_aLep.Vect().Unit().Cross( p4hel_pLep.Vect().Unit() );
   m_spin_corr[ikNorm].second =  llNorm.Dot( kBase );
   m_spin_corr[irNorm].second =  llNorm.Dot( rBase );
   m_spin_corr[inNorm].second =  llNorm.Dot( nBase );
@@ -514,11 +539,17 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static const int iphi0 = index_with_key(m_spin_corr, "phi0");
   static const int iphi1 = index_with_key(m_spin_corr, "phi1");
 
-  const TVector3 t3_aLep = ( b4_aLep.Vect().Unit() - (m_spin_corr[ib1k].second * kBase) ).Unit();
-  const TVector3 t3_pLep = ( b4_pLep.Vect().Unit() - (-1. * m_spin_corr[ib2k].second * kBase) ).Unit();
+  const TVector3 t3_aLep = ( p4hel_aLep.Vect().Unit() - (m_spin_corr[ib1k].second * kBase) ).Unit();
+  const TVector3 t3_pLep = ( p4hel_pLep.Vect().Unit() - (-1. * m_spin_corr[ib2k].second * kBase) ).Unit();
 
   m_spin_corr[iphi0].second = std::acos(t3_aLep.Dot(t3_pLep));
   m_spin_corr[iphi1].second = (m_spin_corr[ikNorm].second < 0.) ? (2. * constants::pi<Number>) - m_spin_corr[iphi0].second : m_spin_corr[iphi0].second;
+
+  // cos theta top lep used in lj 2016 A/H
+  // labeled by top rather than final state branch
+  // other side not needed, pTop and aTop are back to back
+  static const int icpTTT = index_with_key(m_spin_corr, "cpTTT");
+  m_spin_corr[icpTTT].second = p4hel_pTop.Vect().Unit().Dot( p4lab_TT.Vect().Unit() );
 
   return m_spin_corr;
 }
@@ -526,546 +557,25 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
 
 
 template <typename Number = float>
-Number cLab(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
+auto spin_correlation(const std::string &var)
 {
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cLab");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b1k(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b1k");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b2k(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b2k");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b1r(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b1r");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b2r(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b2r");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b1n(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b1n");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b2n(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b2n");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b1j(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b1j");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b2j(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b2j");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b1q(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b1q");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number b2q(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "b2q");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number ckk(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "ckk");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number crr(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "crr");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cnn(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-           Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-           Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-           Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cnn");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cPrk(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cPrk");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cMrk(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cMrk");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cPnr(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cPnr");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cMnr(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cMnr");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cPnk(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cPnk");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cMnk(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cMnk");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cHel(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cHel");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cHan(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cHan");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cSca(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cSca");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cTra(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cTra");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number crkP(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "crkP");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number crkM(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "crkM");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cnrP(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cnrP");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cnrM(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cnrM");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cnkP(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cnkP");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number cnkM(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "cnkM");
-  return map[i].second;
-}
-
-
-
-
-template <typename Number = float>
-Number phi0(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "phi0");
-  return map[i].second;
-}
-
-
-
-template <typename Number = float>
-Number phi1(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
-{
-  const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
-                                             aTop_pt, aTop_eta, aTop_phi, aTop_m,
-                                             pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                                             aLep_pt, aLep_eta, aLep_phi, aLep_m);
-
-  static const int i = index_with_key(map, "phi1");
-  return map[i].second;
+  const auto &map = compute_spin_correlation(Number(), Number(), Number(), Number(),
+                                             Number(), Number(), Number(), Number(),
+                                             Number(), Number(), Number(), Number(),
+                                             Number(), Number(), Number(), Number());
+
+  return [ivar = index_with_key(map, var)] (Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
+                                            Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
+                                            Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
+                                            Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
+  {
+    const auto &map = compute_spin_correlation(pTop_pt, pTop_eta, pTop_phi, pTop_m,
+                                               aTop_pt, aTop_eta, aTop_phi, aTop_m,
+                                               pLep_pt, pLep_eta, pLep_phi, pLep_m,
+                                               aLep_pt, aLep_eta, aLep_phi, aLep_m);
+
+    return map[ivar].second;
+  };
 }
 
 #endif
