@@ -212,23 +212,6 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   const TLorentzVector p4hel_aLep = f_zmf_top(p4lab_aLep, p4hel_pTop);
   const TLorentzVector p4hel_pLep = f_zmf_top(p4lab_pLep, p4hel_aTop);
 
-  /*
-  // should be const-ized, but Boost() doesn't work with copy ctors...
-  TLorentzVector p4hel_pTop( p4lab_pTop );
-  p4hel_pTop.Boost( -1. * p4lab_TT.BoostVector() );
-
-  TLorentzVector p4hel_aTop( p4lab_aTop );
-  p4hel_aTop.Boost( -1. * p4lab_TT.BoostVector() );
-
-  TLorentzVector p4hel_aLep( p4lab_aLep );
-  p4hel_aLep.Boost( -1. * p4lab_TT.BoostVector() );
-  p4hel_aLep.Boost( -1. * p4hel_pTop.BoostVector() );
-
-  TLorentzVector p4hel_pLep( p4lab_pLep );
-  p4hel_pLep.Boost( -1. * p4lab_TT.BoostVector() );
-  p4hel_pLep.Boost( -1. * p4hel_aTop.BoostVector() );
-  */
-
   // calculating the top-beam angle for pTop only (defining pP as the +z beam proton)
   const Number cpTP = p4hel_pTop.Vect().Unit().Dot(zBase);
   const Number spTP = std::sqrt(1. - (cpTP * cpTP));
