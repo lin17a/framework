@@ -16,23 +16,30 @@
 #include <dirent.h>
 #include <string>
 
-TLorentzVector ttbar_sum (float pt1, float eta1, float phi1, float mass1,
-                     	  float pt2, float eta2, float phi2, float mass2)
-{
-  TLorentzVector p1, p2;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  return p1 + p2;
+using attr_func_type = std::function<float(float,float,float,float,float,float,float,float)>;
+
+attr_func_type get_attr_function(std::function<float(TLorentzVector)> extract_attr_func) {
+  return [extract_attr_func](float pt1, float eta1, float phi1, float mass1, float pt2, float eta2, float phi2, float mass2) {
+    TLorentzVector p1, p2;
+    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+    p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
+    TLorentzVector sum = p1 + p2;
+    return extract_attr_func(sum);
+  };
 }
+
+attr_func_type invariant_mass = get_attr_function([](TLorentzVector sum){return sum.M();});
+
+
+
 // declare in advance a few functions we will need in the analysis
+/*
 float invariant_mass(float pt1, float eta1, float phi1, float mass1,
 		float pt2, float eta2, float phi2, float mass2) 
 {
-  TLorentzVector p1, p2;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  return (p1 + p2).M();
+  return ttbar_sum(pt1,eta1,phi1,mass1,pt2,eta2,phi2,mass2).M();
 }
+*/
 
 float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 {
@@ -404,11 +411,22 @@ int main() {
   // the syntax is underlying_group::attribute
   // when the same underlying attribute is used multiple times, the aggregate takes care of the indexing
   // here the first gen_particle::pt is read off the top index, and the second time from the antitop index
-  
+ 
+
+  const auto add_attribute = [&](const std::string &funcname, attr_func_type func) {
+    gen_ttbar.add_attribute(funcname, func, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+   					    "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");  
+  };
+
+  add_attribute("ttbar_mass", invariant_mass);
+
+
+ 
   //TLorentzVector ttbar_sum = ttbar_sum("gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
   //                        	       "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-  gen_ttbar.add_attribute("ttbar_mass", invariant_mass, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+  
+//gen_ttbar.add_attribute("ttbar_mass", invariant_mass, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+  //						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
   gen_ttbar.add_attribute("ttbar_pt", pt_vector_sum, 
                           "gen_particle::pt", "gen_particle::phi", "gen_particle::pt", "gen_particle::phi");
