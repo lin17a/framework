@@ -4,8 +4,12 @@
 // -*- C++ -*-
 // author: afiq anuar
 // short: an interface for creating, filling and saving of histograms from groups
+// note: clone() from another Histogram was attempted, 
+// note: abandoned since there was no obvious way to clone the filler accordingly
+// note: since that requires accessing copying lambdas and updating its captures
 
 #include "Heap.h"
+#include "misc/string_io.h"
 
 #include "TFile.h"
 
@@ -46,6 +50,13 @@ namespace Framework {
 
     /// compute the weight and fill all held histograms
     void fill();
+
+    /// unroll 2D or 3D histograms into 1D, starting from the x axis
+    /// the output will always be a TH1D, not really worth the hassle to preserve the X in THNX
+    /// since it's likely the main histogram type will move away from ROOT
+    /// bool argument is to recover the uoflows during the unrolling
+    /// unrolled histogram will not have uoflows
+    void unroll(bool add_under_overflow = true);
 
     /// save all held histograms into a ROOT file
     void save_as(const std::string &name) const;
