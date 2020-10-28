@@ -2,7 +2,7 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-template <int N, typename... Ts>
+template <int N, typename ...Ts>
 template <typename ...Groups>
 Framework::Aggregate<N, Ts...>::Aggregate(const std::string &name_, int reserve_, int init, Groups &...groups) : 
 Framework::Group<Ts...>::Group(name_, 1),
@@ -24,7 +24,7 @@ v_group{ std::ref<Group<Ts...>>(groups)... }
 
 
 
-template <int N, typename... Ts>
+template <int N, typename ...Ts>
 template <typename Indexer>
 void Framework::Aggregate<N, Ts...>::set_indexer(Indexer indexer_)
 {

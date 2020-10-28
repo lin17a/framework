@@ -23,7 +23,7 @@
 #include <stdexcept>
 
 // credit https://stackoverflow.com/questions/34099597/check-if-a-type-is-passed-in-variadic-template-parameter-pack
-template<typename T, typename... Ts>
+template<typename T, typename ...Ts>
 constexpr bool contained_in = std::disjunction_v<std::is_same<T, Ts>...>;
 
 
@@ -32,7 +32,7 @@ constexpr bool contained_in = std::disjunction_v<std::is_same<T, Ts>...>;
 template <typename T> 
 struct Base {};
 
-template <typename... Ts>
+template <typename ...Ts>
 struct Types : Base<Ts>...
 {
   template <typename T>
@@ -50,7 +50,7 @@ struct Types : Base<Ts>...
   }
 };
 
-template <typename... Ts>
+template <typename ...Ts>
 constexpr bool unique_types = ( (Types<>{} + ... + Base<Ts>{}).size() == sizeof...(Ts) );
 
 
@@ -84,12 +84,12 @@ template <typename T>
 struct function_traits : public function_traits<decltype(&T::operator())>
 {};
 
-template <typename Ret, typename... Args>
+template <typename Ret, typename ...Args>
 struct function_traits<Ret(*)(Args...)> : public function_traits<Ret(Args...)>
 {};
 
 // specialization for normal lambda
-template <typename Cls, typename Ret, typename... Args>
+template <typename Cls, typename Ret, typename ...Args>
 struct function_traits<Ret(Cls::*)(Args...) const>
 {
   static constexpr int arity = sizeof...(Args);
@@ -105,7 +105,7 @@ struct function_traits<Ret(Cls::*)(Args...) const>
 };
 
 // specialization for mutable lambda
-template <typename Cls, typename Ret, typename... Args>
+template <typename Cls, typename Ret, typename ...Args>
 struct function_traits<Ret(Cls::*)(Args...)>
 {
   static constexpr int arity = sizeof...(Args);
@@ -121,7 +121,7 @@ struct function_traits<Ret(Cls::*)(Args...)>
 };
 
 // specialization for regular functions
-template <typename Ret, typename... Args>
+template <typename Ret, typename ...Args>
 struct function_traits<Ret(Args...)>
 {
   static constexpr int arity = sizeof...(Args);

@@ -2,7 +2,7 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-template <typename... Ts>
+template <typename ...Ts>
 Framework::Collection<Ts...>::Collection(const std::string &name_, int reserve_) : 
 Framework::Group<Ts...>::Group(name_, 1),
 tree(nullptr),

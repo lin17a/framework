@@ -2,7 +2,7 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-template <typename... Ts>
+template <typename ...Ts>
 Framework::Group<Ts...>::Group(const std::string &name_, int counter_) :
 name(name_),
 counter(counter_),
