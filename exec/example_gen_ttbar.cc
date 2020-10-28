@@ -1,6 +1,8 @@
 // example execution macro showing a generator-level ttbar analysis assuming the CMS nanoAOD format
-// compile:
-// filename=example_gen_ttbar; g++ $(root-config --cflags --evelibs) -std=c++17 -O3 -Wall -Wextra -Wpedantic -Werror -Wno-float-equal -Wno-sign-compare -I ../plugins/ -I ../src/ -o ${filename} ${filename}.cc
+// compile from exec/ directory:
+// make example_gen_ttbar -f ../Makefile
+// or from anywhere else:
+// make example_gen_ttbar FWK_BASE_DIR="<FWK_DIR>" -f <FWK_DIR>/Makefile
 
 // core framework headers
 #include "Dataset.h"
@@ -14,8 +16,8 @@
 #include "misc/function_util.h"
 
 // declare in advance a few functions we will need in the analysis
-float invariant_mass(float pt1, float eta1, float phi1, float mass1,
-                     float pt2, float eta2, float phi2, float mass2)
+float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
+                            float pt2, float eta2, float phi2, float mass2)
 {
   TLorentzVector p1, p2;
   p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
@@ -34,6 +36,8 @@ float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 
 int main() {
   // the core part of the framework are all within this namespace
+  // note: an example of CL arguments are provided in bparking/bpark_tt3l.cc file
+  // which is not yet integrated into the example
   using namespace Framework;
 
   // first and foremost, we specify the input files we will be looking at
@@ -281,7 +285,7 @@ int main() {
   // the syntax is underlying_group::attribute
   // when the same underlying attribute is used multiple times, the aggregate takes care of the indexing
   // here the first gen_particle::pt is read off the top index, and the second time from the antitop index
-  gen_ttbar.add_attribute("ttbar_mass", invariant_mass, 
+  gen_ttbar.add_attribute("ttbar_mass", system_invariant_mass, 
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
@@ -332,34 +336,33 @@ int main() {
                           return {{top[0], antitop[0], lepton[0], antilepton[0], bottom[0], antibottom[0]}};
                        });
 
-  // for transferring the attributes of some daughter particles
-  auto return_third = [] (float , float , float f3) {return f3;};
-  auto return_fourth = [] (float , float , float , float f4) {return f4;};
-  auto return_fifth = [] (float , float , float , float , float f5) {return f5;};
-  auto return_sixth = [] (float , float , float , float , float , float f6) {return f6;};
-
-  gen_tt_ll_bb.add_attribute("lepton_pt", return_third, 
+  // having to define a masking for each case can be cumbersome
+  // so a function identity<N, T>() is provided in the plugins to do this
+  // where N stands for the index of argument to be returned (in array notation)
+  // and T the type of the expected argument (defaults to float)
+  // therefore e.g. identity<1>() returns a function that does the same thing as return_second above
+  gen_tt_ll_bb.add_attribute("lepton_pt", identity<2>(), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("lepton_eta", return_third, 
+  gen_tt_ll_bb.add_attribute("lepton_eta", identity<2>(), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("antilepton_pt", return_fourth, 
+  gen_tt_ll_bb.add_attribute("antilepton_pt", identity<3>(), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("antilepton_eta", return_fourth, 
+  gen_tt_ll_bb.add_attribute("antilepton_eta", identity<3>(), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("bottom_pt", return_fifth, 
+  gen_tt_ll_bb.add_attribute("bottom_pt", identity<4>(), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("bottom_eta", return_fifth, 
+  gen_tt_ll_bb.add_attribute("bottom_eta", identity<4>(), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("antibottom_pt", return_sixth, 
+  gen_tt_ll_bb.add_attribute("antibottom_pt", identity<5>(), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("antibottom_eta", return_sixth, 
+  gen_tt_ll_bb.add_attribute("antibottom_eta", identity<5>(), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
   // let's also consider some invariant masses
-  gen_tt_ll_bb.add_attribute("ttbar_mass", invariant_mass, 
+  gen_tt_ll_bb.add_attribute("ttbar_mass", system_invariant_mass, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
@@ -367,7 +370,7 @@ int main() {
                                                float , float , float , float ,
                                                float pt1, float eta1, float phi1, float m1,
                                                float pt2, float eta2, float phi2, float m2)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -379,7 +382,7 @@ int main() {
                                                float , float , float , float ,
                                                float pt1, float eta1, float phi1, float m1,
                                                float pt2, float eta2, float phi2, float m2)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -393,7 +396,7 @@ int main() {
                                                float , float , float , float , 
                                                float , float , float , float ,
                                                float pt2, float eta2, float phi2, float m2)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -407,7 +410,7 @@ int main() {
                                                float pt1, float eta1, float phi1, float m1,
                                                float pt2, float eta2, float phi2, float m2, 
                                                float , float , float , float)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -421,7 +424,7 @@ int main() {
                                             float , float , float , float ,
                                             float pt2, float eta2, float phi2, float m2, 
                                             float , float , float , float)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -435,7 +438,7 @@ int main() {
                                                   float pt1, float eta1, float phi1, float m1,
                                                   float , float , float , float ,
                                                   float pt2, float eta2, float phi2, float m2)
-                             { return invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
