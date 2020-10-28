@@ -128,10 +128,32 @@ int index_with_key(const std::vector<std::pair<std::string, V>> &vec, const std:
 
 
 
-template <typename T = float>
-constexpr T identity(const T &t)
+// implementation of the identity<N, T>, refer to that for more info
+template <size_t N, typename Number, typename ...Numbers>
+Number identity_impl(Number number, Numbers ...numbers)
 {
-  return t;
+  static_assert(sizeof...(numbers) + 1 > N, "ERROR: identity: mismatch between number of arguments and index of argument to be extracted!!");
+  return std::get<N>(std::array<Number, sizeof...(numbers) + 1>{number, numbers...});
+}
+
+
+
+// helper of identity<N, T>, refer to that for more info
+template <size_t I, typename Number, size_t ...N>
+auto identity_helper(std::index_sequence<N...>) -> Number(*)(typename std::tuple_element<N, std::array<Number, sizeof...(N)>>::type...)
+{
+  return identity_impl<I, typename std::tuple_element<N, std::array<Number, sizeof...(N)>>::type...>;
+}
+
+
+
+// a function returning a function that returns the value of its last argument
+// it is expected that identity<N, T> is given exactly N + 1 argument of type T
+// i.e. this is meant to solve the need to define return_first, return_second etc for use in Aggregate
+template <size_t N, typename Number = float>
+auto identity() -> decltype(identity_helper<N, Number>(std::make_index_sequence<N + 1>{}))
+{
+  return identity_helper<N, Number>(std::make_index_sequence<N + 1>{});
 }
 
 #endif
