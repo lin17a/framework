@@ -55,6 +55,14 @@ Number angle(Number eta1, Number phi1, Number eta2, Number phi2)
 
 
 
+template <typename Number = float>
+Number rapidity(Number pt, Number eta, Number mass) 
+{
+  return std::log( (quadratic_sum(mass, pt * std::cosh(eta)) + (pt * std::sinh(eta))) / (quadratic_sum(mass, pt)) );
+}
+
+
+
 /// helper for multivector_system_impl, doing the actual daughter assignment
 template <size_t ...N, typename Number>
 void assign_vector(std::array<TLorentzVector, sizeof...(N)> &p4, std::array<Number, 4 * sizeof...(N)> &arg, std::index_sequence<N...>)
