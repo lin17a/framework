@@ -786,23 +786,22 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_no_cut", "", 100, 0.f, 200.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_no_cut", "", 100, 0.f, 200.f);
   
-
-  //new on Oct 29
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_no_cut", "", 120, 0.f, 1200.f);
-
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_no_cut", "", 120, 0.f, 1200.f);
+  // new on Oct 29
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_no_cut", "", 100, 0.f, 0.0001f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_no_cut", "", 100, 0.f, 0.0001f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_no_cut", "", 100, 0.f, 0.001f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_no_cut", "", 100, 0.f, 0.001f);
   
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_no_cut", "", 120, 0.f, 1200.f);
-
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_no_cut", "", 120, 0.f, 1200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_no_cut", "", 120, 0.f, 1200.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_no_cut", "", 100, 0.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_no_cut", "", 100, 0.f, 5.f);
+  
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_no_cut", "", 100, 150.f, 200.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_no_cut", "", 100, 150.f, 200.f);
+  
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_no_cut", "", 100, 0.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_no_cut", "", 100, 0.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_no_cut", "", 100, -5.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_no_cut", "", 100, -5.f, 5.f);
 
   
   // ttbar things
@@ -866,21 +865,21 @@ int main() {
 
  
   // new on Oct 29
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_cut", "", 120, 0.f, 1200.f);
-
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_cut", "", 120, 0.f, 1200.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_cut", "", 100, 0.f, 0.0001f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_cut", "", 100, 0.f, 0.0001f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_cut", "", 100, 0.f, 0.001f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_cut", "", 100, 0.f, 0.001f);
   
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_cut", "", 120, 0.f, 1200.f);
-
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_cut", "", 120, 0.f, 1200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_cut", "", 120, 0.f, 1200.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_cut", "", 100, 0.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_cut", "", 100, 0.f, 5.f);
+  
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_cut", "", 100, 150.f, 200.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_cut", "", 100, 150.f, 200.f);
+  
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_cut", "", 100, 0.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_cut", "", 100, 0.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_cut", "", 100, -5.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_cut", "", 100, -5.f, 5.f);
 
 
   // ttbar things
@@ -1024,8 +1023,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_compare2/hist_RES_PSEUDO_no_cut.root");
-  hist_cut.save_as("hist_conpare2/hist_RES_PSEUDO_cut.root");
+  hist_no_cut.save_as("hist_heavyhiggs_m600_w15_000_INT_PSEUDO_no_cut.root");
+  hist_cut.save_as("hist_heavyhiggs_m600_w15_000_INT_PSEUDO_cut.root");
 //  Afiq
 //  tree_gen.save();
 
