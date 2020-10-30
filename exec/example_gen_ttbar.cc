@@ -337,28 +337,32 @@ int main() {
                        });
 
   // having to define a masking for each case can be cumbersome
-  // so a function identity<N, T>() is provided in the plugins to do this
-  // where N stands for the index of argument to be returned (in array notation)
-  // and T the type of the expected argument (defaults to float)
-  // therefore e.g. identity<1>() returns a function that does the same thing as return_second above
-  gen_tt_ll_bb.add_attribute("lepton_pt", identity<2>(), 
+  // so we will be using the function_util plugin to simplify the work somewhat
+  // there a function identity<type> is defined that returns a copy of its only argument
+  // i.e. identity<float> do the same thing as return_first above, except it takes only one argument
+  // furthermore, a function apply_to<N> is provided, that takes one argument that is a function
+  // let ff be a function taking F arguments
+  // then a call of apply_to<N>(ff) returns a function that takes (N + 1) * F arguments
+  // whose result is the same as calling ff on the last F arguments, ignoring the first NF arguments
+  // e.g. apply_to<1>(identity<float>) returns a function that is identical to return_second above
+  gen_tt_ll_bb.add_attribute("lepton_pt", apply_to<2>(identity<>), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("lepton_eta", identity<2>(), 
+  gen_tt_ll_bb.add_attribute("lepton_eta", apply_to<2>(identity<>), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("antilepton_pt", identity<3>(), 
+  gen_tt_ll_bb.add_attribute("antilepton_pt", apply_to<3>(identity<>), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("antilepton_eta", identity<3>(), 
+  gen_tt_ll_bb.add_attribute("antilepton_eta", apply_to<3>(identity<>), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("bottom_pt", identity<4>(), 
+  gen_tt_ll_bb.add_attribute("bottom_pt", apply_to<4>(identity<>), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("bottom_eta", identity<4>(), 
+  gen_tt_ll_bb.add_attribute("bottom_eta", apply_to<4>(identity<>), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
-  gen_tt_ll_bb.add_attribute("antibottom_pt", identity<5>(), 
+  gen_tt_ll_bb.add_attribute("antibottom_pt", apply_to<5>(identity<>), 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
-  gen_tt_ll_bb.add_attribute("antibottom_eta", identity<5>(), 
+  gen_tt_ll_bb.add_attribute("antibottom_eta", apply_to<5>(identity<>), 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
 
   // let's also consider some invariant masses
@@ -366,23 +370,13 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
-  gen_tt_ll_bb.add_attribute("llbar_mass", [] (float , float , float , float , 
-                                               float , float , float , float ,
-                                               float pt1, float eta1, float phi1, float m1,
-                                               float pt2, float eta2, float phi2, float m2)
-                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+  gen_tt_ll_bb.add_attribute("llbar_mass", apply_to<1>(system_invariant_mass), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
-  gen_tt_ll_bb.add_attribute("bbbar_mass", [] (float , float , float , float , 
-                                               float , float , float , float ,
-                                               float , float , float , float , 
-                                               float , float , float , float ,
-                                               float pt1, float eta1, float phi1, float m1,
-                                               float pt2, float eta2, float phi2, float m2)
-                             { return system_invariant_mass(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2); }, 
+  gen_tt_ll_bb.add_attribute("bbbar_mass", apply_to<2>(system_invariant_mass), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -390,6 +384,8 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
+  // in the cases below where we can't divide the arguments into first NF and last F arguments
+  // we need to use regular masking for the moment
   gen_tt_ll_bb.add_attribute("lbbar_mass", [] (float , float , float , float , 
                                                float , float , float , float ,
                                                float pt1, float eta1, float phi1, float m1,
