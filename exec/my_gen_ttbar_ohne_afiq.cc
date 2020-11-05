@@ -18,8 +18,10 @@
 // things I included
 #include <dirent.h>
 #include <string>
+// this one is to add light weight paticle masses, if it would work
+#include "./misc/constants.h"
 
-
+// cool things from Ruben to make the add_attribute shorter
 using attr_func_type_ttbar = const std::function<float(float,float,float,float,float,float,float,float)>;
 
 attr_func_type_ttbar get_attr_function(const std::function<float(TLorentzVector)> extract_attr_func) {
@@ -32,21 +34,26 @@ attr_func_type_ttbar get_attr_function(const std::function<float(TLorentzVector)
   };
 }
 
-//attr_func_type_ttbar invariant_mass = get_attr_function([](TLorentzVector sum){return sum.M();});
 
 // declare in advance a few functions we will need in the analysis
 
 float invariant_mass(float pt1, float eta1, float phi1, float mass1,
 		     float pt2, float eta2, float phi2, float mass2) 
 {
-  //return ttbar_sum(pt1,eta1,phi1,mass1,pt2,eta2,phi2,mass2).M();
     TLorentzVector p1, p2;
     p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
     p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
     return (p1 + p2).M();
 }
 
-// attr_func_type_ttbar invariant_mass = get_attr_function([](TLorentzVector sum){return sum.M();});
+// calculate invariant mass of just one particle 
+float invariant_mass_one_particle(float pt1, float eta1, float phi1, float mass1)
+{
+    TLorentzVector p1;
+    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+    // std::cout << p1.M() << "\t"  << pt1 << "\t" << eta1 << "\t" << phi1 << "\t" << mass1 <<  "\n";
+    return p1.M();
+}
 
 float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 {
@@ -92,6 +99,11 @@ float llbar_phi_diff(float pt1, float eta1, float phi1, float mass1,
   p4.SetPtEtaPhiM(pt4, eta4, phi4, mass4);
   return (p1 - p2).Phi();
 }
+
+// printing out things for all events like b mass or so
+auto printer = [] (auto &p) {std::cout << p << "\n";};
+
+// a lot of useless functions which are all much shorter in the main now 
 
 //// Returns the rapidity, i.e. 0.5*ln((E+pz)/(E-pz))
 //float rapidity(float pt1, float eta1, float phi1, float mass1,
@@ -175,7 +187,7 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-//  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarnlo_normal/root_files/ttbarnlo_dilepton__00000.root");
+  // dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00001.root");
   std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
@@ -185,13 +197,7 @@ int main() {
   }
   while ((entry = readdir(dp))) {
        puts(entry->d_name);
-       //std::string dir_string = "/nfs/dust/cms/user/meyerlin/ba/runs/ttbarnlo_normal/root_files/";
-       //std::string file_string = strcat(dir_string, (const char*) entry->d_name);
        
-//        char dir_str[100];
-//        strcpy (dir_str,"/nfs/dust/cms/user/meyerlin/ba/runs/ttbarnlo_normal/root_files/");
-//        std::string file_string = strcat(dir_str,entry->d_name);
-
        std::string file_string = dir_string + std::string(entry->d_name);
 
        dat.add_file(file_string);
@@ -248,7 +254,7 @@ int main() {
  //Afiq 
  // Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 8192);
   
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 256);
+  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 8192);
  
   printf("new Collection gen_particle\n");
   gen_particle.add_attribute("mass", "GenPart_mass", 1.f);
@@ -315,7 +321,7 @@ int main() {
   // restricting leptons to only electron or muon as is commonly done in experimental analyses
   gen_particle.transform_attribute("dileptonic_ttbar", 
                                    [&pdgs = gen_particle.get<int>("pdg"), &idxs = gen_particle.get<int>("mother"), 
-                                    &flags = gen_particle.get<int>("flag")] 
+                                    &flags = gen_particle.get<int>("flag")] //&mass = gen_particle.get<float>("mass")] 
                                    (int pdg, int flag, int idx) -> int {
                                      // integer flag for particles which are part of a generator-level dileptonic ttbar system
                                      // 1 top
@@ -396,6 +402,18 @@ int main() {
                                      return 0;
                                    }, "pdg", "flag", "mother");
 
+
+//   // defining masses of the light particles, that are not simulated 
+//   // similarly to the function above
+//   // segfaults when not commented out
+//   gen_particle.transform_attribute("light_masses", 
+//                                    [&pdgs = gen_particle.get<int>("pdg"), &flags = gen_particle.get<int>("flag")] //&mass = gen_particle.get<float>("mass")] 
+//                                    (int pdg, int flag) -> int {
+//                                     if (pdg == 8 and flag & 8192)
+// 					return constants::m_electron<float>;
+//                                     return 0;
+//                                     }, "pdg", "flag");
+
   printf("a lot of functions worked\n");
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
@@ -414,7 +432,7 @@ int main() {
   // 4- the collections that contribute an index to the aggregate (specified once per index)
   // here we want the 2-particle system made of the final top quark pair, so we provide the gen_particle twice, once for top and once for antitop
   // it is worth noting that currently an aggregate can only be made from groups of the same type
-  Aggregate gen_ttbar("gen_ttbar", 7, 1, gen_particle, gen_particle);
+  Aggregate gen_ttbar("gen_ttbar", 17, 1, gen_particle, gen_particle);
 
   printf("aggregate gen_ttbar worked\n");
   // when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
@@ -500,22 +518,6 @@ int main() {
   gen_ttbar.add_attribute("ttbar_angle", angle, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
 						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
-//  gen_ttbar.add_attribute("ttbar_rapidity", rapidity, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-//						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-//  
-//  
-//  gen_ttbar.add_attribute("ttbar_beta", my_beta, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-//						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-//
-//  gen_ttbar.add_attribute("ttbar_pseudo_rapidity", pseudo_rapidity, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-//								    "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-//
-//  gen_ttbar.add_attribute("ttbar_gamma", my_gamma, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-//						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-//
-//  gen_ttbar.add_attribute("ttbar_eta", eta, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-//						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-
 
 
   // possibly redundant, but simple copies of the underlying attribute at the index of interest is also possible
@@ -582,7 +584,7 @@ int main() {
   // rather than something one might actually be interested in doing in an actual analysis
   // so now let us consider a more typical example of a dileptonic ttbar system
   // where we are interested in six particles: tops, charged leptons and bottoms
-  Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 15, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
+  Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 22, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
 
   // set the indices similarly as above
   gen_tt_ll_bb.set_indexer([] (const auto &g1, const auto &g2, const auto &g3, const auto &g4, const auto &g5, const auto &g6)
@@ -611,8 +613,8 @@ int main() {
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
   gen_tt_ll_bb.add_attribute("lepton_eta", return_third, 
                              "gen_particle::eta", "gen_particle::eta", "gen_particle::eta");
-  gen_tt_ll_bb.add_attribute("lepton_mass", return_third, 
-                             "gen_particle::mass", "gen_particle::mass", "gen_particle::mass");
+//  gen_tt_ll_bb.add_attribute("lepton_mass", return_third, 
+//                             "gen_particle::mass", "gen_particle::mass", "gen_particle::mass");
 
   gen_tt_ll_bb.add_attribute("antilepton_pt", return_fourth, 
                              "gen_particle::pt", "gen_particle::pt", "gen_particle::pt", "gen_particle::pt");
@@ -642,6 +644,16 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
+  gen_tt_ll_bb.add_attribute("lbar_mass", [] (float , float , float , float , 
+                                           float , float , float , float ,
+                                           float , float , float , float ,
+                                           float pt1, float eta1, float phi1, float m1)
+                             { return invariant_mass_one_particle(pt1, eta1, phi1, m1); }, 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+  
   gen_tt_ll_bb.add_attribute("llbar_mass", [] (float , float , float , float , 
                                                float , float , float , float ,
                                                float pt1, float eta1, float phi1, float m1,
@@ -735,6 +747,8 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
 
+
+
   printf("everything until histograms worked\n");
   // let's histogram the attributes we defined above
   // this is done through the histogram class, which handles a group of histograms sharing the same weights and to be filled at the same time
@@ -788,8 +802,8 @@ int main() {
   
 
   //new on Oct 29
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_no_cut", "", 100, 0.f, 0.0001f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_no_cut", "", 100, 0.f, 0.0001f);
+  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "l_mass"), "l_mass_no_cut", "", 200, -0.000005f, 0.000005f);
+  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbar_mass"), "lbar_mass_no_cut", "", 200, -0.0000005f, 0.000005f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_no_cut", "", 100, 0.f, 0.001f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_no_cut", "", 100, 0.f, 0.001f);
 
@@ -804,12 +818,16 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_no_cut", "", 100, -5.f, 5.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_no_cut", "", 100, -5.f, 5.f);
 
+ //that is probably completely wrong, I wanted to try whether I can make the light particles masses visible
+ // hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "light_particle"), "light_particle_mass", "", 100, -5.f, 5.f);
+  
   
   // ttbar things
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_no_cut", "", 100, -4.f, 4.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_no_cut", "", 100, -10.f, 10.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_no_cut", "", 100, -1.f, 4.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_no_cut", "", 100, 0.f, 1.f);
+  // looks like this is pseudo rapidity as well
   //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_no_cut", "", 100, -10.f, 10.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_no_cut", "", 100, 0.f, 10.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_no_cut", "", 100, 0.f, 10.f);
@@ -817,17 +835,19 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_no_cut", "", 100, -1.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_no_cut", "", 100, 0.f, 100.f);
   // m2, mag, mag2, mt, mt2 and t are always zero
+  // mag(2) and m(2) are the same
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_m2"), "ttbar_m2_no_cut", "", 100, -1000.f, 1000.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mag"), "ttbar_mag_no_cut", "", 100, -100.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mag2"), "ttbar_mag2_no_cut", "", 100, -100.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_no_cut", "", 100, 0.f, 500.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mt"), "ttbar_mt_no_cut", "", 100, -100.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mt2"), "ttbar_mt2_no_cut", "", 100, -100.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_no_cut", "", 100, 0.f, 500.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_no_cut", "", 100, 0.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_no_cut", "", 100, 0.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_no_cut", "", 100, -4.f, 4.f);
+  // plus and minus are T +/- Z and has sth to do with light cones in relativity
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_no_cut", "", 100, 0.f, 100.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_no_cut", "", 100, 0.f, 500.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_no_cut", "", 100, -100.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_no_cut", "", 100, -100.f, 100.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_no_cut", "", 100, -100.f, 100.f);
@@ -852,6 +872,9 @@ int main() {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_cut", "", 100, -5.f, 5.f);
 
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_cut", "", 100, 0.f, 400.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_cut", "", 100, -5.f, 5.f);
+
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_cut", "", 100, 0.f, 400.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_cut", "", 100, -5.f, 5.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_cut", "", 100, 0.f, 400.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_cut", "", 100, -5.f, 5.f);
@@ -867,8 +890,8 @@ int main() {
  
 
   //new on Oct 29
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_mass"), "lepton_mass_cut", "", 100, 0.f, 0.0001f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_mass"), "antilepton_mass_cut", "", 100, 0.f, 0.0001f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "l_mass"), "l_mass_cut", "", 200, -0.000005f, 0.000005f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbar_mass"), "lbar_mass_cut", "", 100, -0.0000005f, 0.0000005f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_mass"), "bottom_mass_cut", "", 100, 0.f, 0.001f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_mass"), "antibottom_mass_cut", "", 100, 0.f, 0.001f);
 
@@ -997,14 +1020,15 @@ int main() {
       hist_cut.fill();
 // Afiq    
 //  tree_gen.fill();
+    
+    // that is to print attributes for all events like bbbar mass
+    // gen_tt_ll_bb.iterate(printer, -1, -1, "bottom_mass");
+
     }
     /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
     // by stacking multiple filter_XXX calls
     // do check that it gives equivalent results as the above!
     gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("lepton_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f) );
     gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("bottom_pt", 20.f) );
     gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f) );
     gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f) );
