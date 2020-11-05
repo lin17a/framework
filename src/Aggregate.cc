@@ -2,10 +2,10 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-template <int N, typename... Ts>
+template <int N, typename ...Ts>
 template <typename ...Groups>
 Framework::Aggregate<N, Ts...>::Aggregate(const std::string &name_, int reserve_, int init, Groups &...groups) : 
-Framework::Group<Ts...>::Group(name_, 1),
+Framework::Group<Ts...>::Group(name_, 0),
 v_group{ std::ref<Group<Ts...>>(groups)... }
 {
   static_assert(N > 1, "ERROR: Aggregate must be made out of two or more (not necessarily unique) Groups!!");
@@ -24,7 +24,7 @@ v_group{ std::ref<Group<Ts...>>(groups)... }
 
 
 
-template <int N, typename... Ts>
+template <int N, typename ...Ts>
 template <typename Indexer>
 void Framework::Aggregate<N, Ts...>::set_indexer(Indexer indexer_)
 {

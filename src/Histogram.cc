@@ -55,6 +55,96 @@ void Framework::Histogram::fill()
 
 
 
+void Framework::Histogram::unroll(bool add_under_overflow /*= true*/)
+{
+  for (int iH = 0; iH < v_hist.size(); ++iH) {
+    std::string name = v_hist[iH].first->GetName();
+
+    auto h2 = dynamic_cast<TH2 *>(v_hist[iH].first.get());
+    auto h3 = dynamic_cast<TH3 *>(v_hist[iH].first.get());
+
+    if (h2 != nullptr) {
+      const int nx = h2->GetNbinsX(), ny = h2->GetNbinsY();
+      v_hist.emplace_back(std::make_unique<TH1D>((name + "_unroll").c_str(), "", nx * ny, 0., nx * ny), std::function<void()>(nullptr));
+      auto &hunr = v_hist.back().first;
+
+      for (int ix = 0; ix < nx; ++ix) {
+        for (int iy = 0; iy < ny; ++iy) {
+          double content = h2->GetBinContent(ix + 1, iy + 1), squnc = h2->GetBinError(ix + 1, iy + 1) * h2->GetBinError(ix + 1, iy + 1);
+
+          if (add_under_overflow) {
+            if (ix == 0) {
+              content += h2->GetBinContent(ix, iy + 1);
+              squnc += h2->GetBinError(ix, iy + 1) * h2->GetBinError(ix, iy + 1);
+            }
+            if (iy == 0) {
+              content += h2->GetBinContent(ix + 1, iy);
+              squnc += h2->GetBinError(ix + 1, iy) * h2->GetBinError(ix + 1, iy);
+            }
+            if (ix == nx - 1) {
+              content += h2->GetBinContent(ix + 2, iy + 1);
+              squnc += h2->GetBinError(ix + 2, iy + 1) * h2->GetBinError(ix + 2, iy + 1);
+            }
+            if (iy == ny - 1) {
+              content += h2->GetBinContent(ix + 1, iy + 2);
+              squnc += h2->GetBinError(ix + 1, iy + 2) * h2->GetBinError(ix + 1, iy + 2);
+            }
+          }
+
+          hunr->SetBinContent( (iy * nx) + ix + 1, content );
+          hunr->SetBinError( (iy * nx) + ix + 1, std::sqrt(squnc) );
+        }
+      }
+    }
+    else if (h3 != nullptr) {
+      const int nx = h3->GetNbinsX(), ny = h3->GetNbinsY(), nz = h3->GetNbinsZ();
+      v_hist.emplace_back(std::make_unique<TH1D>((name + "_unroll").c_str(), "", nx * ny * nz, 0., nx * ny * nz), std::function<void()>(nullptr));
+      auto &hunr = v_hist.back().first;
+
+      for (int ix = 0; ix < nx; ++ix) {
+        for (int iy = 0; iy < ny; ++iy) {
+          for (int iz = 0; iz < nz; ++iz) {
+            double content = h3->GetBinContent(ix + 1, iy + 1, iz + 1), 
+              squnc = h3->GetBinError(ix + 1, iy + 1, iz + 1) * h3->GetBinError(ix + 1, iy + 1, iz + 1);
+
+            if (add_under_overflow) {
+              if (ix == 0) {
+                content += h3->GetBinContent(ix, iy + 1, iz + 1);
+                squnc += h3->GetBinError(ix, iy + 1, iz + 1) * h3->GetBinError(ix, iy + 1, iz + 1);
+              }
+              if (iy == 0) {
+                content += h3->GetBinContent(ix + 1, iy, iz + 1);
+                squnc += h3->GetBinError(ix + 1, iy, iz + 1) * h3->GetBinError(ix + 1, iy, iz + 1);
+              }
+              if (iz == 0) {
+                content += h3->GetBinContent(ix + 1, iy + 1, iz);
+                squnc += h3->GetBinError(ix + 1, iy + 1, iz) * h3->GetBinError(ix + 1, iy + 1, iz);
+              }
+              if (ix == nx - 1) {
+                content += h3->GetBinContent(ix + 2, iy + 1, iz + 1);
+                squnc += h3->GetBinError(ix + 2, iy + 1, iz + 1) * h3->GetBinError(ix + 2, iy + 1, iz + 1);
+              }
+              if (iy == ny - 1) {
+                content += h3->GetBinContent(ix + 1, iy + 2, iz + 1);
+                squnc += h3->GetBinError(ix + 1, iy + 2, iz + 1) * h3->GetBinError(ix + 1, iy + 2, iz + 1);
+              }
+              if (iz == nz - 1) {
+                content += h3->GetBinContent(ix + 1, iy + 1, iz + 2);
+                squnc += h3->GetBinError(ix + 1, iy + 1, iz + 2) * h3->GetBinError(ix + 1, iy + 1, iz + 2);
+              }
+            }
+
+            hunr->SetBinContent( (iz * ny * nx) + (iy * nx) + ix + 1, content );
+            hunr->SetBinError( (iz * ny * nx) + (iy * nx) + ix + 1, std::sqrt(squnc) );
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
 void Framework::Histogram::save_as(const std::string &name) const
 {
   auto file = std::make_unique<TFile>(name.c_str(), "recreate");

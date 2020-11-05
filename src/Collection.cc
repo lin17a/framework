@@ -2,9 +2,9 @@
 // author: afiq anuar
 // short: please refer to header for information
 
-template <typename... Ts>
+template <typename ...Ts>
 Framework::Collection<Ts...>::Collection(const std::string &name_, int reserve_) : 
-Framework::Group<Ts...>::Group(name_, 1),
+Framework::Group<Ts...>::Group(name_, 0),
 tree(nullptr),
 counter_name(""),
 counter_branch(nullptr)
@@ -17,7 +17,7 @@ counter_branch(nullptr)
 
 template <typename ...Ts>
 Framework::Collection<Ts...>::Collection(const std::string &name_, const std::string &counter_name_, int reserve_, int init /*= 4*/) : 
-Framework::Group<Ts...>::Group(name_, 1),
+Framework::Group<Ts...>::Group(name_, 0),
 tree(nullptr),
 counter_name(counter_name_),
 counter_branch(nullptr)

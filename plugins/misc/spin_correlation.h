@@ -3,7 +3,7 @@
 
 // -*- C++ -*-
 // author: afiq anuar
-// short: for computing ttbar spin correlation variables except dphi
+// short: for computing ttbar spin correlation variables
 
 #include "misc/function_util.h"
 #include "misc/constants.h"
@@ -19,8 +19,10 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   static std::vector<std::pair<std::string, Number>> m_spin_corr;
   static int initialize = 0;
   if (initialize == 0) {
-    m_spin_corr.reserve(98); // exact size
+    m_spin_corr.reserve(100); // exact size
     m_spin_corr.emplace_back("cLab", -9999.);
+    m_spin_corr.emplace_back("dPhi", -9999.);
+    m_spin_corr.emplace_back("dEta", -9999.);
 
     m_spin_corr.emplace_back("cpTP", -9999.);
 
@@ -187,6 +189,12 @@ compute_spin_correlation(Number pTop_pt, Number pTop_eta, Number pTop_phi, Numbe
   // computes spin correlation variables
   static const int icLab = index_with_key(m_spin_corr, "cLab");
   m_spin_corr[icLab].second = p4lab_aLep.Vect().Unit().Dot( p4lab_pLep.Vect().Unit() );
+
+  static const int idPhi = index_with_key(m_spin_corr, "dPhi");
+  m_spin_corr[idPhi].second = dPhi(p4lab_aLep.Phi(), p4lab_pLep.Phi());
+
+  static const int idEta = index_with_key(m_spin_corr, "dEta");
+  m_spin_corr[idEta].second = absolute_difference(p4lab_aLep.Eta(), p4lab_pLep.Eta());
 
   // the various spin corr vars with boosting: Bernreuther 1508.05271
   // xyz coordinate system

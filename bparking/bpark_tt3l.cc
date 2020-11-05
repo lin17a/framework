@@ -1,6 +1,7 @@
 // execution macro for testing the fwk devs
 // compile:
-// g++ $(root-config --cflags --evelibs) -std=c++17 -O3 -Wall -Wextra -Wpedantic -Werror -Wno-float-equal -Wno-sign-compare -I ../plugins/ -I ../src/ -o bpark_tt3l bpark_tt3l.cc
+// make bpark_tt3l -f ../Makefile
+// THIS FILE IS VERY MUCH WORK IN PROGRESS
 
 #include "../src/Dataset.h"
 #include "../src/Collection.h"

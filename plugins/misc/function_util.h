@@ -7,9 +7,18 @@
 
 #include <type_traits>
 
+#include "../src/Heap.h"
+
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
+
+// a function that performs a simple copy of the argument
+template <typename T = float>
+T identity(T t)
+{
+  return t;
+}
 
 // fillers for the histogram class
 template <typename ...Groups>
@@ -128,10 +137,42 @@ int index_with_key(const std::vector<std::pair<std::string, V>> &vec, const std:
 
 
 
-template <typename T = float>
-constexpr T identity(const T &t)
+// implementation of the apply_to<N, F>, refer to that for more info
+template <typename Number, size_t ...I, typename Function, size_t ...N>
+auto apply_to_impl(std::index_sequence<I...>, Function function, std::index_sequence<N...>)
 {
-  return t;
+  using Traits = function_traits<decltype(function)>;
+  auto f_apply = [function] (typename std::tuple_element<N, std::array<Number, sizeof...(N)>>::type ...args) -> typename Traits::result_type { 
+    return function( std::get<sizeof...(N) - Traits::arity + I>(std::array<Number, sizeof...(N)>{args...})... );
+  };
+
+  return f_apply;
+}
+
+
+
+// helper of apply_to<N, F>, refer to that for more info
+template <typename Number, typename Function, size_t ...N>
+auto apply_to_helper(Function function, std::index_sequence<N...>)
+{
+  using Traits = function_traits<decltype(function)>;
+  return apply_to_impl<typename Traits::result_type>(std::make_index_sequence<Traits::arity>{}, function, std::make_index_sequence<sizeof...(N)>{});
+}
+
+
+
+// a function that outputs a function that applies another function on its last F arguments
+// let ff be a function taking F arguments
+// then a call of apply_to<N>(ff) returns a function that takes (N + 1) * F arguments
+// whose result is the same as calling ff on the last F arguments, ignoring the first NF arguments
+// there is no reason why would apply_to<0> not work; it's just prevented as no use case is envisioned for it
+// being that this is written mainly to make index masking a touch easier
+template <size_t N, typename Function>
+auto apply_to(Function function)
+{
+  static_assert(N > 0, "ERROR: apply_to is not callable with N = 0, as in this case no masking is necessary!!");
+  using Traits = function_traits<decltype(function)>;
+  return apply_to_helper<typename Traits::result_type>(function, std::make_index_sequence<(N + 1) * Traits::arity>{});
 }
 
 #endif
