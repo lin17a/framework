@@ -67,6 +67,8 @@
         h1->GetYaxis()->SetTitle("number of events"); 
  
         h1->SetNameTitle(hist_name1.c_str(), "");
+        h1->Scale(1. / h1->Integral());
+        h2->Scale(1. / h2->Integral());
 
 	TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
         can->cd();

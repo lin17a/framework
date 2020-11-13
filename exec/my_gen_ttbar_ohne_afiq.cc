@@ -1022,7 +1022,7 @@ int main() {
 //  tree_gen.fill();
     
     // that is to print attributes for all events like bbbar mass
-    // gen_tt_ll_bb.iterate(printer, -1, -1, "bottom_mass");
+    // metadata.iterate(printer, -1, -1, "weight");
 
     }
     /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
