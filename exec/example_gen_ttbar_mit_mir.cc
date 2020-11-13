@@ -48,6 +48,21 @@ float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
   return (p1 + p2).M();
 }
 
+// declare in advance a few functions we will need in the analysis
+float system_invariant_mass_four_particles(float pt1, float eta1, float phi1, float mass1,
+		                           float pt2, float eta2, float phi2, float mass2,
+		                           float pt3, float eta3, float phi3, float mass3,
+		                           float pt4, float eta4, float phi4, float mass4)
+{
+  TLorentzVector p1, p2, p3, p4;
+  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
+  p3.SetPtEtaPhiM(pt3, eta3, phi3, mass3);
+  p4.SetPtEtaPhiM(pt4, eta4, phi4, mass4);
+
+  return (p1 + p2 + p3 + p4).M();
+}
+
 // calculate invariant mass of just one particle 
 float invariant_mass_one_particle(float pt1, float eta1, float phi1, float mass1)
 {
@@ -121,23 +136,24 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-//  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
+  // dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
+  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
-  struct dirent *entry = nullptr;
-  DIR *dp = opendir(dir_string.c_str());
-  if (dp == nullptr) {
-     perror("opendir: Path does not exist or could not be read.");
-     return EXIT_FAILURE;
-  }
-  while ((entry = readdir(dp))) {
-       puts(entry->d_name);
-       
-       std::string file_string = dir_string + std::string(entry->d_name);
-
-       dat.add_file(file_string);
-  }
-  closedir(dp);
+//   std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
+//   struct dirent *entry = nullptr;
+//   DIR *dp = opendir(dir_string.c_str());
+//   if (dp == nullptr) {
+//      perror("opendir: Path does not exist or could not be read.");
+//      return EXIT_FAILURE;
+//   }
+//   while ((entry = readdir(dp))) {
+//        puts(entry->d_name);
+//        
+//        std::string file_string = dir_string + std::string(entry->d_name);
+// 
+//        dat.add_file(file_string);
+//   }
+//   closedir(dp);
   
   // next step is to specify the attributes to be included in the analysis
   // for this we will make use of two data structures, collections and aggregates
@@ -180,8 +196,8 @@ int main() {
   // as with 3- the framework adapts the memory layout as the need arises, but it is good practice to provide a helpful hint
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 8192);
-  gen_particle.add_attribute("mass", "GenPart_mass", 1.f);
+  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 12, 8192);
+  gen_particle.add_attribute("default_mass", "GenPart_mass", 1.f);
   gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
   gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
   gen_particle.add_attribute("phi", "GenPart_phi", 1.f);
@@ -323,8 +339,19 @@ int main() {
 
                                      // everything else not relevant for us
                                      return 0;
-                                   }, "pdg", "flag", "mother");
-
+                                   }, "pdg", "flag", "mother"); 
+  
+  gen_particle.transform_attribute("mass", [] (float mass, int id, int pdg_id) { 
+    if (mass != 0) 
+      return mass; 
+    else if (id == 4 or id == 9){ 
+      if (std::abs(pdg_id) == 11)  
+    	return 0.00051099895f;   //electron_mass_const
+      else if (std::abs(pdg_id) == 13) 
+        return 0.1056583745f; } //muon_mass
+    return mass;
+    }, "default_mass", "pdg", "dileptonic_ttbar" ); 
+ 
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
@@ -580,6 +607,20 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+  
+  gen_tt_ll_bb.add_attribute("llbarbbbar_mass", [] (float , float , float , float , 
+                                                  float , float , float , float ,
+                                                  float pt1, float eta1, float phi1, float m1,
+                                                  float pt2, float eta2, float phi2, float m2,
+                                                  float pt3, float eta3, float phi3, float m3,
+                                                  float pt4, float eta4, float phi4, float m4)
+                             { return system_invariant_mass_four_particles(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2, pt3, eta3, phi3, m3, pt4, eta4, phi4, m4); }, 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
   gen_tt_ll_bb.add_attribute("llbar_phi", llbar_phi,
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
@@ -673,8 +714,8 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_no_cut", "", 100, 150.f, 200.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_no_cut", "", 100, 150.f, 200.f);
 
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_no_cut", "", 100, 0.f, 5.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_no_cut", "", 100, 0.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_no_cut", "", 160, 0.f, 5.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_no_cut", "", 160, 0.f, 5.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_no_cut", "", 100, -5.f, 5.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_no_cut", "", 100, -5.f, 5.f);
 
@@ -757,8 +798,8 @@ int main() {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_cut", "", 100, 150.f, 200.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_cut", "", 100, 150.f, 200.f);
 
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_cut", "", 100, 0.f, 5.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_cut", "", 100, 0.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_cut", "", 160, 0.f, 5.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_cut", "", 160, 0.f, 5.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_cut", "", 100, -5.f, 5.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_cut", "", 100, -5.f, 5.f);
  
@@ -852,6 +893,12 @@ int main() {
     // when this aggregate is empty e.g. when we have taus in the event
     if (!gen_tt_ll_bb.n_elements())
       return;
+
+    // printing stuff
+    metadata.iterate(printer, -1, -1, "weight");
+    metadata.iterate(printer, -1, -1, "lumi");
+    // gen_tt_ll_bb.iterate(printer, -1, -1, "lbbar_mass");
+    gen_particle.iterate(printer, -1, -1, "pt");
 
     // fill the no (acceptance) cut histograms
     hist_no_cut.fill();
