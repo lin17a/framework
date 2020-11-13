@@ -154,7 +154,7 @@ void Framework::Collection<Ts...>::populate(long long entry)
     for (int iD = 0; iD < this->counter; ++iD)
       this->v_index.emplace_back(iD);
   }
-  else if (!v_attr.empty()) {
+  else if (!this->v_attr.empty()) {
     this->v_index.clear();
     this->v_index.emplace_back(0);
     this->counter = 1;
