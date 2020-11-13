@@ -20,13 +20,15 @@ T identity(T t)
   return t;
 }
 
+
+
 // fillers for the histogram class
 template <typename ...Groups>
 auto filler_count(const Groups &...groups)
 {
   static_assert(sizeof...(groups) > 0 and sizeof...(groups) < 4, "ERROR: filler_count: currently only 1D - 3D histograms are supported!!");
 
-  using Hist = typename std::conditional<sizeof...(groups) != 1, typename std::conditional<sizeof...(groups) != 2, TH3, TH2>::type, TH1>::type;
+  using Hist = typename std::conditional_t<sizeof...(groups) != 1, typename std::conditional_t<sizeof...(groups) != 2, TH3, TH2>, TH1>;
 
   return [&groups...] (Hist *hist, const double &weight) {
     hist->Fill(groups.n_elements()..., weight);
@@ -40,7 +42,7 @@ auto filler_first_of(const Group &group, Attributes &&...attrs)
 {
   static_assert(sizeof...(attrs) > 0 and sizeof...(attrs) < 4, "ERROR: filler_first_of: currently only 1D - 3D histograms are supported!!");
 
-  using Hist = typename std::conditional<sizeof...(attrs) != 1, typename std::conditional<sizeof...(attrs) != 2, TH3, TH2>::type, TH1>::type;
+  using Hist = typename std::conditional_t<sizeof...(attrs) != 1, typename std::conditional_t<sizeof...(attrs) != 2, TH3, TH2>, TH1>;
 
   return [&group, attrs...] (Hist *hist, const double &weight) {
     std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
@@ -57,7 +59,7 @@ auto filler_all_of(const Group &group, Attributes &&...attrs)
 {
   static_assert(sizeof...(attrs) > 0 and sizeof...(attrs) < 4, "ERROR: filler_all_of: currently only 1D - 3D histograms are supported!!");
 
-  using Hist = typename std::conditional<sizeof...(attrs) != 1, typename std::conditional<sizeof...(attrs) != 2, TH3, TH2>::type, TH1>::type;
+  using Hist = typename std::conditional_t<sizeof...(attrs) != 1, typename std::conditional_t<sizeof...(attrs) != 2, TH3, TH2>, TH1>;
 
   return [&group, attrs...] (Hist *hist, const double &weight) {
     std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
