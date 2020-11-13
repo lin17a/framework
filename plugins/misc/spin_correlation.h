@@ -7,6 +7,7 @@
 
 #include "misc/function_util.h"
 #include "misc/constants.h"
+#include "misc/numeric_vector.h"
 
 template <typename Number = float>
 const std::vector<std::pair<std::string, Number>>& 
