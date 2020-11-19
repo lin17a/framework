@@ -140,7 +140,7 @@ int main() {
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
+  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_SCALAR_lo_cfg/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -962,8 +962,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_ttbarlo_spin_no_cut.root");
-  hist_cut.save_as("hist_ttbarlo_spin_cut.root");
+  hist_no_cut.save_as("hist_INT_SCALAR_spin_no_cut.root");
+  hist_cut.save_as("hist_INT_SCALAR_spin_cut.root");
   tree_gen.save();
 
   return 0;

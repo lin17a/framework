@@ -14,6 +14,7 @@
 // additional headers that aid in defining analysis-dependent functions
 #include "TLorentzVector.h"
 #include "misc/function_util.h"
+#include "misc/function_util.h"
 #include "misc/numeric_vector.h"
 #include "misc/spin_correlation.h"
 
@@ -26,16 +27,16 @@
 // cool things from Ruben to make the add_attribute shorter
  using attr_func_type_ttbar = const std::function<float(float,float,float,float,float,float,float,float)>;
  using attr_func_type_spin = const std::function<float(float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float)>;
-
-attr_func_type_ttbar get_attr_function(const std::function<float(TLorentzVector)> extract_attr_func) {
-  return [extract_attr_func](float pt1, float eta1, float phi1, float mass1, float pt2, float eta2, float phi2, float mass2) {
-    TLorentzVector p1, p2;
-    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-    p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-    TLorentzVector sum = p1 + p2;
-    return extract_attr_func(sum);
-  };
-}
+// 
+// attr_func_type_ttbar get_attr_function(const std::function<float(TLorentzVector)> extract_attr_func) {
+//   return [extract_attr_func](float pt1, float eta1, float phi1, float mass1, float pt2, float eta2, float phi2, float mass2) {
+//     TLorentzVector p1, p2;
+//     p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+//     p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
+//     TLorentzVector sum = p1 + p2;
+//     return extract_attr_func(sum);
+//   };
+// }
 
 // declare in advance a few functions we will need in the analysis
 float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
@@ -48,30 +49,6 @@ float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
   return (p1 + p2).M();
 }
 
-// declare in advance a few functions we will need in the analysis
-float system_invariant_mass_four_particles(float pt1, float eta1, float phi1, float mass1,
-		                           float pt2, float eta2, float phi2, float mass2,
-		                           float pt3, float eta3, float phi3, float mass3,
-		                           float pt4, float eta4, float phi4, float mass4)
-{
-  TLorentzVector p1, p2, p3, p4;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  p3.SetPtEtaPhiM(pt3, eta3, phi3, mass3);
-  p4.SetPtEtaPhiM(pt4, eta4, phi4, mass4);
-
-  return (p1 + p2 + p3 + p4).M();
-}
-
-// calculate invariant mass of just one particle 
-float invariant_mass_one_particle(float pt1, float eta1, float phi1, float mass1)
-{
-    TLorentzVector p1;
-    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-    // std::cout << p1.M() << "\t"  << pt1 << "\t" << eta1 << "\t" << phi1 << "\t" << mass1 <<  "\n";    return p1.M();
-    return p1.M();
-}
-
 float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 {
   float px1 = pt1 * std::cos(phi1), px2 = pt2 * std::cos(phi2);
@@ -79,46 +56,6 @@ float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 
   return std::sqrt(((px1 + px2) * (px1 + px2)) + ((py1 + py2) * (py1 + py2)));
 }
-
-float my_angle(float pt1, float eta1, float phi1, float mass1,
-            float pt2, float eta2, float phi2, float mass2)
-{ 
-  TLorentzVector p1, p2;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  TVector3 p1_T3 = p1.Vect();
-  TVector3 p2_T3 = p2.Vect();
-  return p1_T3.Angle(p2_T3);
-}
-
-float llbar_phi(float pt1, float eta1, float phi1, float mass1,
-            float pt2, float eta2, float phi2, float mass2,
-            float pt3, float eta3, float phi3, float mass3,
-            float pt4, float eta4, float phi4, float mass4)
-{ 
-  TLorentzVector p1, p2, p3, p4;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  p3.SetPtEtaPhiM(pt3, eta3, phi3, mass3);
-  p4.SetPtEtaPhiM(pt4, eta4, phi4, mass4);
-  return (p3 + p4).Phi();
-}
-
-float llbar_dphi(float pt1, float eta1, float phi1, float mass1,
-            float pt2, float eta2, float phi2, float mass2,
-            float pt3, float eta3, float phi3, float mass3,
-            float pt4, float eta4, float phi4, float mass4)
-{ 
-  TLorentzVector p1, p2, p3, p4;
-  p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
-  p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
-  p3.SetPtEtaPhiM(pt3, eta3, phi3, mass3);
-  p4.SetPtEtaPhiM(pt4, eta4, phi4, mass4);
-  return dPhi(p3.Phi(),p4.Phi());
-}
-
-// printing out things for all events like b mass or so
-auto printer = [] (auto &p) {std::cout << p << "\n";};
 
 int main() {
   // the core part of the framework are all within this namespace
@@ -136,11 +73,9 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
-  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
-  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
+//  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
+  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -197,8 +132,8 @@ int main() {
   // as with 3- the framework adapts the memory layout as the need arises, but it is good practice to provide a helpful hint
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 12, 8192);
-  gen_particle.add_attribute("default_mass", "GenPart_mass", 1.f);
+  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 8192);
+  gen_particle.add_attribute("mass", "GenPart_mass", 1.f);
   gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
   gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
   gen_particle.add_attribute("phi", "GenPart_phi", 1.f);
@@ -340,19 +275,8 @@ int main() {
 
                                      // everything else not relevant for us
                                      return 0;
-                                   }, "pdg", "flag", "mother"); 
-  
-  gen_particle.transform_attribute("mass", [] (float mass, int id, int pdg_id) { 
-    if (mass != 0) 
-      return mass; 
-    else if (id == 4 or id == 9){ 
-      if (std::abs(pdg_id) == 11)  
-    	return 0.00051099895f;   //electron_mass_const
-      else if (std::abs(pdg_id) == 13) 
-        return 0.1056583745f; } //muon_mass
-    return mass;
-    }, "default_mass", "pdg", "dileptonic_ttbar" ); 
- 
+                                   }, "pdg", "flag", "mother");
+
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
@@ -401,55 +325,12 @@ int main() {
   // the syntax is underlying_group::attribute
   // when the same underlying attribute is used multiple times, the aggregate takes care of the indexing
   // here the first gen_particle::pt is read off the top index, and the second time from the antitop index
-  
-  // to make adding attributes shorter
-  const auto add_attribute = [&](const std::string &funcname, attr_func_type_ttbar func) {
-    gen_ttbar.add_attribute(funcname, func, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-   					    "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");  
-  };
-
-
   gen_ttbar.add_attribute("ttbar_mass", system_invariant_mass, 
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
   gen_ttbar.add_attribute("ttbar_pt", pt_vector_sum, 
                           "gen_particle::pt", "gen_particle::phi", "gen_particle::pt", "gen_particle::phi");
-
-  gen_ttbar.add_attribute("ttbar_angle", my_angle, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-						"gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-
-
-  add_attribute("ttbar_rapidity", get_attr_function([](TLorentzVector sum){return sum.Rapidity();}));
-  add_attribute("ttbar_beta", get_attr_function([](TLorentzVector sum){return sum.Beta();}));
-  add_attribute("ttbar_pseudo_rapidity", get_attr_function([](TLorentzVector sum){return sum.PseudoRapidity();}));
-  add_attribute("ttbar_gamma", get_attr_function([](TLorentzVector sum){return sum.Gamma();}));
-  add_attribute("ttbar_e", get_attr_function([](TLorentzVector sum){return sum.E();}));
-  add_attribute("ttbar_energy", get_attr_function([](TLorentzVector sum){return sum.Energy();}));
-  add_attribute("ttbar_et", get_attr_function([](TLorentzVector sum){return sum.Et();}));
-  add_attribute("ttbar_et2", get_attr_function([](TLorentzVector sum){return sum.Et2();}));
-  add_attribute("ttbar_m2", get_attr_function([](TLorentzVector sum){return sum.M2();}));
-  add_attribute("ttbar_mag", get_attr_function([](TLorentzVector sum){return sum.Mag();}));
-  add_attribute("ttbar_mag2", get_attr_function([](TLorentzVector sum){return sum.Mag2();}));
-  add_attribute("ttbar_minus", get_attr_function([](TLorentzVector sum){return sum.Minus();}));
-  add_attribute("ttbar_mt", get_attr_function([](TLorentzVector sum){return sum.Mt();}));
-  add_attribute("ttbar_mt2", get_attr_function([](TLorentzVector sum){return sum.Mt2();}));
-  add_attribute("ttbar_p", get_attr_function([](TLorentzVector sum){return sum.P();}));
-  add_attribute("ttbar_perp", get_attr_function([](TLorentzVector sum){return sum.Perp();}));
-  add_attribute("ttbar_perp2", get_attr_function([](TLorentzVector sum){return sum.Perp2();}));
-  add_attribute("ttbar_phi", get_attr_function([](TLorentzVector sum){return sum.Phi();}));
-  add_attribute("ttbar_plus", get_attr_function([](TLorentzVector sum){return sum.Plus();}));
-  add_attribute("ttbar_px", get_attr_function([](TLorentzVector sum){return sum.Px();}));
-  add_attribute("ttbar_py", get_attr_function([](TLorentzVector sum){return sum.Py();}));
-  add_attribute("ttbar_pz", get_attr_function([](TLorentzVector sum){return sum.Pz();}));
-  add_attribute("ttbar_rho", get_attr_function([](TLorentzVector sum){return sum.Rho();}));
-  add_attribute("ttbar_t", get_attr_function([](TLorentzVector sum){return sum.T();}));
-  add_attribute("ttbar_theta", get_attr_function([](TLorentzVector sum){return sum.Theta();}));
-  //add_attribute("ttbar_x", get_attr_function([](TLorentzVector sum){return sum.X();}));
-  //add_attribute("ttbar_y", get_attr_function([](TLorentzVector sum){return sum.Y();}));
-  //add_attribute("ttbar_z", get_attr_function([](TLorentzVector sum){return sum.Z();}));
-
-
 
   // possibly redundant, but simple copies of the underlying attribute at the index of interest is also possible
   // by masking the index through unnamed arguments
@@ -465,14 +346,6 @@ int main() {
   // do the same thing for phi
   gen_ttbar.add_attribute("top_phi", return_first, "gen_particle::phi", "gen_particle::phi");
   gen_ttbar.add_attribute("antitop_phi", return_second, "gen_particle::phi", "gen_particle::phi");
-  
-  // t and tbar mass
-  gen_ttbar.add_attribute("top_mass", return_first, "gen_particle::mass", "gen_particle::mass");
-  gen_ttbar.add_attribute("antitop_mass", return_second, "gen_particle::mass", "gen_particle::mass");
-
-  // t and tbar eta
-  gen_ttbar.add_attribute("top_eta", return_first, "gen_particle::eta", "gen_particle::eta");
-  gen_ttbar.add_attribute("antitop_eta", return_second, "gen_particle::eta", "gen_particle::eta");
 
   // and redundantly obtain the ttbar pt again
   gen_ttbar.transform_attribute("ttbar_pt_transform", pt_vector_sum, 
@@ -482,7 +355,7 @@ int main() {
   // rather than something one might actually be interested in doing in an actual analysis
   // so now let us consider a more typical example of a dileptonic ttbar system
   // where we are interested in six particles: tops, charged leptons and bottoms
-  Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 22, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
+  Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 15, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
 
   // set the indices similarly as above
   gen_tt_ll_bb.set_indexer([] (const auto &g1, const auto &g2, const auto &g3, const auto &g4, const auto &g5, const auto &g6)
@@ -608,32 +481,29 @@ int main() {
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-  
-  gen_tt_ll_bb.add_attribute("llbarbbbar_mass", [] (float , float , float , float , 
-                                                  float , float , float , float ,
-                                                  float pt1, float eta1, float phi1, float m1,
-                                                  float pt2, float eta2, float phi2, float m2,
-                                                  float pt3, float eta3, float phi3, float m3,
-                                                  float pt4, float eta4, float phi4, float m4)
-                             { return system_invariant_mass_four_particles(pt1, eta1, phi1, m1, pt2, eta2, phi2, m2, pt3, eta3, phi3, m3, pt4, eta4, phi4, m4); }, 
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
-  gen_tt_ll_bb.add_attribute("llbar_phi", llbar_phi,
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
-  
-  gen_tt_ll_bb.add_attribute("llbar_phi_diff", llbar_dphi,
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
-                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+
+
+//  spin correlations
+//  aggregate for tt2l
+//  probably the second parameter (15) should be sth else, I don't know, what's the number of attributes...
+//   Aggregate gen_tt2l("gen_tt2l", 15, 1, gen_particle, gen_particle, gen_particle, gen_particle);
+//   
+// // set the indices similarly as above
+//   gen_tt2l.set_indexer([] (const auto &g1, const auto &g2, const auto &g3, const auto &g4)
+//                        -> std::vector<std::array<int, 4>> {
+//                           auto top = g1.filter_equal("dileptonic_ttbar", 1);
+//                           auto antitop = g2.filter_equal("dileptonic_ttbar", 6);
+//                           auto lepton = g3.filter_equal("dileptonic_ttbar", 9);
+//                           auto antilepton = g4.filter_equal("dileptonic_ttbar", 4);
+//                           
+//                           // check that the collection contains exactly one particle of interest
+//                           // if not, return an empty index list
+//                           if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1)
+//                             return {};
+// 
+//                           return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+//                        });
 
 
   // adding spin correlation 
@@ -657,6 +527,16 @@ int main() {
   spin_add_attribute("cpTTT", spin_correlation<>("cpTTT"));
   spin_add_attribute("cpTP", spin_correlation<>("cpTP"));
 
+ // spin correlations I can check with probably big difference: ckk, crr, cnn, cHel, cHan, cSca, cTra, phi0, phi1, cpTTT, cLab, and maybe cpTP 
+ // cLab, cHel
+// gen_tt_ll_bb.add_attribute("cHel", spin_correlation<>("cHel"), 
+//                        "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+//                        "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+//                        "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+//                        "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+
+
+
 
   // let's histogram the attributes we defined above
   // this is done through the histogram class, which handles a group of histograms sharing the same weights and to be filled at the same time
@@ -667,8 +547,7 @@ int main() {
   // here we only take the per-event weight from the metadata collection
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
-  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -709,51 +588,6 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_no_cut", "", 100, 0.f, 200.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_no_cut", "", 100, 0.f, 200.f);
 
-
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_no_cut", "", 100, 0.f, 5.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_no_cut", "", 100, 0.f, 5.f);
-  
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_no_cut", "", 100, 150.f, 200.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_no_cut", "", 100, 150.f, 200.f);
-
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_no_cut", "", 160, 0.f, 5.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_no_cut", "", 160, 0.f, 5.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_no_cut", "", 100, -5.f, 5.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_no_cut", "", 100, -5.f, 5.f);
-
-  // ttbar things
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_no_cut", "", 100, -4.f, 4.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_no_cut", "", 100, -10.f, 10.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_no_cut", "", 100, -1.f, 4.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_no_cut", "", 100, 0.f, 1.f);
-  // looks like this is pseudo rapidity as well
-  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_no_cut", "", 100, -10.f, 10.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_no_cut", "", 100, 0.f, 10.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_no_cut", "", 100, 0.f, 10.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_no_cut", "", 100, 0.f, 10.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_no_cut", "", 100, -1.f, 100.f);
-  // looks strange
-  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_no_cut", "", 100, 0.f, 100.f);
-  // m2, mag, mag2, mt, mt2 and t are always zero
-  // mag(2) and m(2) are the same
-  // I dont know what that is
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_no_cut", "", 100, 0.f, 500.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_no_cut", "", 100, 0.f, 100.f);
-  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_no_cut", "", 100, 0.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_no_cut", "", 100, -4.f, 4.f);
-  // plus and minus are T +/- Z and has sth to do with light cones in relativity
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_no_cut", "", 100, 0.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_no_cut", "", 100, 0.f, 500.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_no_cut", "", 100, -100.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_no_cut", "", 100, -100.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_no_cut", "", 100, -100.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_no_cut", "", 100, 0.f, 100.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_no_cut", "", 100, -1.f, 4.f);
-//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_no_cut", "", 100, -100.f, 100.f);
-//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_no_cut", "", 100, -100.f, 100.f);
-//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_no_cut", "", 100, -100.f, 100.f);
-
-
   //spin correlation
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab", "", 100, -1.f, 1.f);
@@ -772,8 +606,7 @@ int main() {
   // we can, but don't need to, define the cuts in the filling function themselves
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
-  //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -795,44 +628,7 @@ int main() {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_cut", "", 100, 0.f, 200.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_cut", "", 100, 0.f, 200.f);
 
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_cut", "", 100, 0.f, 5.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_cut", "", 100, 0.f, 5.f);
-  
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_cut", "", 100, 150.f, 200.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_cut", "", 100, 150.f, 200.f);
-
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_cut", "", 160, 0.f, 5.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_cut", "", 160, 0.f, 5.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_cut", "", 100, -5.f, 5.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_cut", "", 100, -5.f, 5.f);
  
-  // ttbar things
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_cut", "", 100, -4.f, 4.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_cut", "", 100, -1.f, 4.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_cut", "", 100, 0.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_cut", "", 100, -10.f, 10.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_cut", "", 100, 0.f, 10.f);
-  
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_cut", "", 100, 0.f, 10.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_cut", "", 100, 0.f, 10.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_cut", "", 100, -1.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_cut", "", 100, 0.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_cut", "", 100, 0.f, 500.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_cut", "", 100, 0.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_cut", "", 100, 0.f, 100.f);
-  //hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_cut", "", 100, 0.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_cut", "", 100, -4.f, 4.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_cut", "", 100, 0.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_cut", "", 100, -100.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_cut", "", 100, -100.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_cut", "", 100, -100.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_cut", "", 100, 0.f, 100.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_cut", "", 100, -1.f, 4.f);
-//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_cut", "", 100, -100.f, 100.f);
-//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_cut", "", 100, -100.f, 100.f);
-//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_cut", "", 100, -100.f, 100.f);
-  
-
   //spin correlation
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab", "", 100, -1.f, 1.f);
@@ -889,9 +685,6 @@ int main() {
     gen_ttbar.populate(entry);
     gen_tt_ll_bb.populate(entry);
 
-    //printing
-    //metadata.iterate(printer, -1, -1, "weight");
-    
     // we make an oversimplification here, considering only the events where gen_tt_ll_bb contain an element
     // this is because in the above, we have grouped the gen_ttbar and gen_tt_ll_bb histograms together
     // despite the fact that the requirements of gen_tt_ll_bb is strictly tighter than gen_ttbar
@@ -899,11 +692,6 @@ int main() {
     // when this aggregate is empty e.g. when we have taus in the event
     if (!gen_tt_ll_bb.n_elements())
       return;
-
-    // printing stuff
-    // metadata.iterate(printer, -1, -1, "lumi");
-    // gen_tt_ll_bb.iterate(printer, -1, -1, "lbbar_mass");
-    //gen_particle.iterate(printer, -1, -1, "pt");
 
     // fill the no (acceptance) cut histograms
     hist_no_cut.fill();
@@ -962,8 +750,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_ttbarlo_spin_no_cut.root");
-  hist_cut.save_as("hist_ttbarlo_spin_cut.root");
+  hist_no_cut.save_as("hist_RES_PSEUDO_spin_no_cut.root");
+  hist_cut.save_as("hist_RES_PSEUDO_spin_cut.root");
   tree_gen.save();
 
   return 0;

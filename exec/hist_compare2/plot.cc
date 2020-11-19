@@ -70,6 +70,13 @@
         h1->Scale(1. / h1->Integral());
         h2->Scale(1. / h2->Integral());
 
+        double_t max_h1 = h1->GetMaximum();
+        double_t max_h2 = h2->GetMaximum();
+	if (max_h1 > max_h2 ) 
+		h2->SetMaximum(max_h1 + max_h1 / 8);
+        else
+                h1->SetMaximum(max_h2 + max_h2 / 8);
+
 	TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
         can->cd();
            
