@@ -8,21 +8,23 @@
     Color_t line_color;
   };
   
-  auto SetUpHistograms = [](std::vector<histogram *> &hists, TLegend *legend, int line_width = 3, int rebin = 2) {
-    for (histogram *hist : hists) {
+  auto SetUpHistograms = [](std::vector<histogram *> *hists, TLegend *legend, int line_width = 3, int rebin = 2) {
+    for (histogram *hist : *hists) {
       hist->hist->SetLineColor(hist->line_color);
       hist->hist->SetLineWidth(line_width);
       hist->hist->Rebin(rebin);
       hist->hist->Scale(1. / hist->hist->Integral());
+      //std::cout << std::to_string(hist->hist->GetMaximum()) << std::endl;
     } //std::vector<double_t> maxs{h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum(), h4->GetMaximum(), h5->GetMaximum()};
     std::vector<double_t> maxs;
-    std::transform(hists.begin(), hists.end(), std::back_inserter(maxs),
-                   [](auto h) -> double_t { return h->hist->GetMaximum(); });
+    std::transform(hists->begin(), hists->end(), std::back_inserter(maxs),
+                   [](auto h) -> double_t { std::cout <<  std::to_string(h->hist->GetMaximum()) << "\n"; return h->hist->GetMaximum(); });
     double_t max_value = *(std::max_element(maxs.begin(), maxs.end()));
- 
-    for (histogram *hist : hists) { 
+    
+    for (histogram *hist : *hists) { 
       hist->hist->SetMaximum(max_value + max_value/ 8);
       legend->AddEntry(hist->hist, hist->name.c_str(), "l");
+      std::cout << std::to_string(hist->hist->GetMaximum()) << std::endl;
     }
     //hist->SetMinimum(min_value);
   };
@@ -110,7 +112,7 @@
         //double_t min_value = *( std::min_element(mins.begin(), mins.end()) );
         
         // adjust colors, scales, ... 
-        SetUpHistograms(hists, legend);
+        SetUpHistograms(&hists, legend);
         //SetUpHistogram(h1, legend, "ttbarlo", kRed+2, max_value, min_value);
         //SetUpHistogram(h2, legend, "res pseudo", kGreen+3, max_value, min_value);
         //SetUpHistogram(h3, legend, "res scalar", kGreen-3, max_value, min_value);
