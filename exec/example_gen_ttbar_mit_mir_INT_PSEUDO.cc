@@ -668,7 +668,7 @@ int main() {
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] > 0) ? 0 : weight[0]; });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -773,7 +773,7 @@ int main() {
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
   //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] > 0) ? 0 : weight[0]; });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -962,8 +962,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_INT_PSEUDO_spin_no_cut.root");
-  hist_cut.save_as("hist_INT_PSEUDO_spin_cut.root");
+  hist_no_cut.save_as("hist_INT_PSEUDO_spin_negative_no_cut.root");
+  hist_cut.save_as("hist_INT_PSEUDO_spin_negative_cut.root");
   tree_gen.save();
 
   return 0;

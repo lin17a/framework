@@ -14,34 +14,22 @@
       hist->hist->SetLineWidth(line_width);
       hist->hist->Rebin(rebin);
       hist->hist->Scale(1. / hist->hist->Integral());
-      //std::cout << std::to_string(hist->hist->GetMaximum()) << std::endl;
-    } //std::vector<double_t> maxs{h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum(), h4->GetMaximum(), h5->GetMaximum()};
+    } 
     std::vector<double_t> maxs;
     std::transform(hists->begin(), hists->end(), std::back_inserter(maxs),
                    [](auto h) -> double_t { std::cout <<  std::to_string(h->hist->GetMaximum()) << "\n"; return h->hist->GetMaximum(); });
     double_t max_value = *(std::max_element(maxs.begin(), maxs.end()));
+    std::vector<double_t> mins;
+    std::transform(hists->begin(), hists->end(), std::back_inserter(mins),
+                   [](auto h) -> double_t { std::cout <<  std::to_string(h->hist->GetMinimum()) << "\n"; return h->hist->GetMinimum(); });
+    double_t min_value = *(std::min_element(mins.begin(), mins.end()));
     
     for (histogram *hist : *hists) { 
       hist->hist->SetMaximum(max_value + max_value/ 8);
+      hist->hist->SetMinimum(min_value);
       legend->AddEntry(hist->hist, hist->name.c_str(), "l");
       std::cout << std::to_string(hist->hist->GetMaximum()) << std::endl;
     }
-    //hist->SetMinimum(min_value);
-  };
-//   auto SetUpHistogram = [](TH1F *hist, TLegend *legend, std::string name, Color_t line_color, double_t max_value, double_t min_value, int line_width = 3, int rebin = 2) {
-//     hist->SetLineColor(line_color);
-//     hist->SetLineWidth(line_width);
-//     hist->Rebin(rebin);
-//     hist->Scale(1. / hist->Integral());
-//     hist->SetMaximum(max_value + max_value/ 8);
-//     hist->SetMinimum(min_value);
-//     legend->AddEntry(hist, name.c_str(), "l");
-//   };
-
-  auto compare_max = [] (TH1F * hist1, TH1F *hist2) {
-    double_t max1 = hist1->GetMaximum() / hist1->Integral();
-    double_t max2 = hist2->GetMaximum() / hist2->Integral();
-    return (max1 < max2);
   };
 
   std::unordered_map<std::string, std::string> units = {
@@ -99,25 +87,10 @@
         // fits exactly under the info panel
         auto legend = new TLegend(0.78,0.69,0.98,0.77);
         // find the maximum of the maxima to adjust the y axis 
-        //std::vector<double_t> maxs{h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum(), h4->GetMaximum(), h5->GetMaximum()};
         std::vector<histogram *> hists{&hist1, &hist2, &hist3, &hist4, &hist5};
-        
 
-        // TH1F *hist_max = *( std::max_element(hists.begin(), hists.end(), compare_max) ); 
-        // double_t max_value = hist_max->GetMaximum() / hist_max->Integral(); 
-        // double_t max_value = *( std::max_element(maxs.begin(), maxs.end()) ); 
-        
-        // find the minimum of the minima to adjust the y axis 
-        //std::vector<double_t> mins{h1->GetMinimum(), h2->GetMinimum(), h3->GetMinimum(), h4->GetMinimum(), h5->GetMinimum()};
-        //double_t min_value = *( std::min_element(mins.begin(), mins.end()) );
-        
         // adjust colors, scales, ... 
         SetUpHistograms(&hists, legend);
-        //SetUpHistogram(h1, legend, "ttbarlo", kRed+2, max_value, min_value);
-        //SetUpHistogram(h2, legend, "res pseudo", kGreen+3, max_value, min_value);
-        //SetUpHistogram(h3, legend, "res scalar", kGreen-3, max_value, min_value);
-        //SetUpHistogram(h4, legend, "int pseudo", kBlue+2, max_value, min_value);
-        //SetUpHistogram(h5, legend, "int scalar", kAzure+1, max_value, min_value);
         
         // find and set the right title for the x axis
         size_t pos_1 = hist_name.find('_');
