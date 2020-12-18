@@ -320,6 +320,13 @@ std::vector<int> Framework::Group<Ts...>::filter_out(const std::string &name, Nu
 }
 
 
+template <typename ...Ts>
+template <typename Number>
+std::vector<int> Framework::Group<Ts...>::filter_3values(const std::string &name, Number value1, Number value2, Number value3) const
+{
+  return filter([&value1, &value2, &value3] (auto &data) {return (data == value1 and data == value2 and data == value3);}, name);
+}
+
 
 template <typename ...Ts>
 template <typename Compare, typename ...Attributes>

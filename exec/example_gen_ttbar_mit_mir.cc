@@ -16,6 +16,7 @@
 #include "misc/function_util.h"
 #include "misc/numeric_vector.h"
 #include "misc/spin_correlation.h"
+#include "misc/reweighting.h"
 
 // things I included
 #include <dirent.h>
@@ -136,25 +137,25 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
+  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
-  struct dirent *entry = nullptr;
-  DIR *dp = opendir(dir_string.c_str());
-  if (dp == nullptr) {
-     perror("opendir: Path does not exist or could not be read.");
-     return EXIT_FAILURE;
-  }
-  while ((entry = readdir(dp))) {
-       puts(entry->d_name);
-       
-       std::string file_string = dir_string + std::string(entry->d_name);
-
-       dat.add_file(file_string);
-  }
-  closedir(dp);
+//  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/");
+//  struct dirent *entry = nullptr;
+//  DIR *dp = opendir(dir_string.c_str());
+//  if (dp == nullptr) {
+//     perror("opendir: Path does not exist or could not be read.");
+//     return EXIT_FAILURE;
+//  }
+//  while ((entry = readdir(dp))) {
+//       puts(entry->d_name);
+//       
+//       std::string file_string = dir_string + std::string(entry->d_name);
+//
+//       dat.add_file(file_string);
+//  }
+//  closedir(dp);
   
   // next step is to specify the attributes to be included in the analysis
   // for this we will make use of two data structures, collections and aggregates
@@ -188,8 +189,80 @@ int main() {
   metadata.add_attribute("weight", "genWeight", 1.f);
   metadata.add_attribute("lhe_orixwgtup", "LHEWeight_originalXWGTUP", 1.f);
 
+  
+  // add LHE particle Collection for reweighting
+  Collection<boolean, int, float> lhe_particle("lhe_particle", "nlhePart", 12, 16);
+  lhe_particle.add_attribute("default_mass", "lhePart_mass", 1.f);
+  lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
+  lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
+  lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
+  lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
+
+  Aggregate lhe_event("lhe_event", 7, 1, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
+
+  //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
+  //  this is done by providing a function, whose arguments are references to the groups
+  //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
+  //  the first argument is identified with the first group given to the aggregate constructor and so on
+  lhe_event.set_indexer([&g = lhe_event] (const auto &g1, const auto &g2, const auto &g3, const auto &g4)
+                       -> std::vector<std::array<int, 4>> {
+                          // we use the tags defined above to find the top and antitop
+                          // filter_XXX returns a vector of indices of elements fullfilling the criteria
+                          // list of currently supported filter operations are in the group header file
+                          g.update_indices( g.filter_not("ipz", 0.f) );
+                          auto ngluon = g.count_equal("pdg", 21);
+                            
+                          if (ngluon == 1)
+                          {
+                            int sign_pz = ((g.get<float>("ipz"))[0] > 0) ? 1 : -1;
+                            
+                            float eta_top = g1.get<float>("eta");
+                            float eta_antitop = g2.get<float>("eta");
+                            float phi_top = g1.get<float>("phi");
+                            float phi_antitop = g2.get<float>("phi");
+                            float pt_top = g1.get<float>("pt");
+                            float pt_antitop = g2.get<float>("pt");
+                            float m_top = g1.get<float>("default_mass");
+                            float m_antitop = g2.get<float>("default_mass");
+                            TLorentzVector top, antitop;
+                            top.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
+                            antitop.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
+                            TLorentzVector sum = top + antitop;
+                            int sign_eta = sum.Eta() > 0 ? 1 : -1;
+                           
+                            if (g[0].filter_equal("pdg", 21))
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 2;}
+                              else {
+                                ngluon = 0; }
+                            } 
+                            else
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 0; }
+                              else {
+                                ngluon = 2; }
+                            }
+                          }
+                          
+                          if (ngluon == 0) { 
+                            return {}; }
+                        
+                          if (ngluon == 2)
+                          {
+                             auto top = g1.filter_equal("pdg", 6);
+                             auto antitop = g2.filter_equal("pdg", -6);
+                             auto lepton = g3.filter_3values("pdg", 11, 13, 15);
+                             auto antilepton = g4.filter_3values("pdg", -11, -13, -15);
+                             return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+                          }
+
+                           return {};
+                       });
+
   // next we initialize an array-type collection
-  // the constructor arguments in this case are: 
+  
   // 1- the collection name
   // 2- the name of a non-array branch that holds the number of elements each array contains in each branch
   // 3- the number of attributes the collection is expected to contain
@@ -668,7 +741,9 @@ int main() {
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] > 0) ? 0 : weight[0]; });
+
+  float weight2 = 1;
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"),weight2] () { return (weight[0]); });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
