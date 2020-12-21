@@ -51,4 +51,20 @@ std::string to_str(Number num, const int prec = -1, const bool fixed = false)
   return out_str.str(); 
 }
 
+
+
+/// returns a logging function to a desired stream
+/// works, but makes the compilation time MUCH longer when used with Group::iterate()...
+/// and using it with 2 calls, 8 (same) arguments each makes the executable increase by 8MB!!!
+/// however with 2 calls and 2 same arguments each it costs only 4kB, and short compilation time
+/// likely just an issue with how it interacts with std::visit
+auto logger(std::ostream &out) 
+{
+  return [&out] (const auto &arg, const auto &...args) {
+    out << arg;
+    ((out << " " << args), ...);
+    out << "\n";
+  };
+}
+
 #endif
