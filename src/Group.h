@@ -141,6 +141,12 @@ namespace Framework {
     std::vector<int> filter_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
+    std::vector<int> filter_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    std::vector<int> filter_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
     std::vector<int> filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     /// both are min and max exclusive
@@ -178,6 +184,12 @@ namespace Framework {
 
     template <typename Number>
     int count_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    int count_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    int count_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
     int count_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;

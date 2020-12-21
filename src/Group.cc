@@ -303,6 +303,24 @@ std::vector<int> Framework::Group<Ts...>::filter_not(const std::string &name, Nu
 
 template <typename ...Ts>
 template <typename Number>
+std::vector<int> Framework::Group<Ts...>::filter_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return filter(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+std::vector<int> Framework::Group<Ts...>::filter_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return filter(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
 std::vector<int> Framework::Group<Ts...>::filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {
@@ -408,6 +426,24 @@ template <typename Number>
 int Framework::Group<Ts...>::count_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
 {
   return count(v_idx, [&value] (auto &data) {return data != value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+int Framework::Group<Ts...>::count_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return count(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+int Framework::Group<Ts...>::count_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return count(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
 }
 
 
