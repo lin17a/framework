@@ -84,6 +84,12 @@ namespace Framework {
     template <typename T>
     const std::vector<T>& get(const std::string &name) const;
 
+    /// reference to single element in an attribute - typed version
+    /// equivalent to get<T>(attr)[v_index[index]]
+    /// i.e. gives the nth element as per the current Group state accounting for previous update_indices calls 
+    template <typename T>
+    const T& get(const std::string &name, int index) const;
+
     /// the associated indices to be used with the above
     std::vector<int> indices() const;
 
@@ -106,92 +112,98 @@ namespace Framework {
 
     /// filter the elements in the collection by some criteria on a given attribute
     /// custom filter needs a function returning a bool and taking two args of type Number
-    /// first arg is the (single elements of the) attribute to be compared against value
-    /// second arg is bound to value
+    /// the first arg is the indices to restrict the filtering over
+    /// if it is empty, no restriction is imposed i.e. the current Group indices are used
+    /// second arg is the function running on (single elements of) the attributes
+    /// following args are the attributes themselves
     /// returns the indices after filtering
     /// this method DOES NOT update the index in-place
     template <typename Compare, typename ...Attributes>
-    std::vector<int> filter(Compare compare, Attributes &&...attrs) const;
+    std::vector<int> filter(const std::vector<int> &v_idx, Compare compare, Attributes &&...attrs) const;
 
     /// common filters
     template <typename Number>
-    std::vector<int> filter_less(const std::string &name, Number value) const;
+    std::vector<int> filter_less(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_less_equal(const std::string &name, Number value) const;
+    std::vector<int> filter_less_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_greater(const std::string &name, Number value) const;
+    std::vector<int> filter_greater(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_greater_equal(const std::string &name, Number value) const;
+    std::vector<int> filter_greater_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_equal(const std::string &name, Number value) const;
+    std::vector<int> filter_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_not(const std::string &name, Number value) const;
+    std::vector<int> filter_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_bit_and(const std::string &name, Number value) const;
+    std::vector<int> filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     /// both are min and max exclusive
     template <typename Number>
-    std::vector<int> filter_in(const std::string &name, Number min, Number max) const;
+    std::vector<int> filter_in(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    std::vector<int> filter_out(const std::string &name, Number min, Number max) const;
+    std::vector<int> filter_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
+
+    // merge
+    // i.e. getting the OR of two filter results
+    std::vector<int> merge(const std::vector<int> &v_i1, const std::vector<int> &v_i2);
 
     /// count methods 
     /// ie filters but when one is only interested in the count of indices
     /// instead of the indices themselves
     template <typename Compare, typename ...Attributes>
-    int count(Compare compare, Attributes &&...attrs) const;
+    int count(const std::vector<int> &v_idx, Compare compare, Attributes &&...attrs) const;
 
     /// common counters
     template <typename Number>
-    int count_less(const std::string &name, Number value) const;
+    int count_less(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_less_equal(const std::string &name, Number value) const;
+    int count_less_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_greater(const std::string &name, Number value) const;
+    int count_greater(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_greater_equal(const std::string &name, Number value) const;
+    int count_greater_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_equal(const std::string &name, Number value) const;
+    int count_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_not(const std::string &name, Number value) const;
+    int count_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_bit_and(const std::string &name, Number value) const;
+    int count_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     /// both are min and max exclusive
     template <typename Number>
-    int count_in(const std::string &name, Number min, Number max) const;
+    int count_in(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
-    int count_out(const std::string &name, Number min, Number max) const;
+    int count_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     /// sort the elements in the collection by a given attribute
     /// custom sorter needs a function returning a bool and taking two args, both of std::pair<int, decltype(data)>
     /// FIXME prepare a more convenient implementation
     /// returns the sorted indices
     template <typename Compare>
-    std::vector<int> sort(Compare compare, const std::string &name) const;
+    std::vector<int> sort(const std::vector<int> &v_idx, Compare compare, const std::string &name) const;
 
     /// common sorts
-    std::vector<int> sort_ascending(const std::string &name) const;
+    std::vector<int> sort_ascending(const std::string &name, const std::vector<int> &v_idx = {-1}) const;
 
-    std::vector<int> sort_descending(const std::string &name) const;
+    std::vector<int> sort_descending(const std::string &name, const std::vector<int> &v_idx = {-1}) const;
 
-    std::vector<int> sort_absolute_ascending(const std::string &name) const;
+    std::vector<int> sort_absolute_ascending(const std::string &name, const std::vector<int> &v_idx = {-1}) const;
 
-    std::vector<int> sort_absolute_descending(const std::string &name) const;
+    std::vector<int> sort_absolute_descending(const std::string &name, const std::vector<int> &v_idx = {-1}) const;
 
     /// returns the index where an attribute occurs
     int inquire(const std::string &name) const;
@@ -212,11 +224,11 @@ namespace Framework {
 
     /// helper that actually does the filtering
     template <typename Compare, typename ...Attributes>
-    std::vector<int> filter_helper(Compare &compare, Attributes &&...attrs) const;
+    std::vector<int> filter_helper(const std::vector<int> &v_idx, Compare &compare, Attributes &&...attrs) const;
 
     /// helper that actually does the sorting
     template <typename Compare>
-    std::vector<int> sort_helper(Compare &compare, int attr) const;
+    std::vector<int> sort_helper(const std::vector<int> &v_idx, Compare &compare, int attr) const;
 
     /// element counter before prefiltering
     int counter;
