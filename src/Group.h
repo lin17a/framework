@@ -157,8 +157,9 @@ namespace Framework {
     std::vector<int> filter_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     // merge
-    // i.e. getting the OR of two filter results
-    std::vector<int> merge(const std::vector<int> &v_i1, const std::vector<int> &v_i2);
+    // i.e. getting the OR of two or more filter results
+    template <typename ...Idxs>
+    std::vector<int> merge(const Idxs &...idxs);
 
     /// count methods 
     /// ie filters but when one is only interested in the count of indices

@@ -353,13 +353,26 @@ std::vector<int> Framework::Group<Ts...>::filter_out(const std::string &name, Nu
 
 
 template <typename ...Ts>
-std::vector<int> merge(const std::vector<int> &v_i1, const std::vector<int> &v_i2)
+template <typename ...Idxs>
+std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs)
 {
-  std::vector<int> v_merge = v_i1;
-  for (const auto &i2 : v_i2) {
-    if (!std::count(std::begin(v_i1), std::end(v_i1), i2))
-      v_merge.emplace_back(i2);
-  }
+  static_assert(sizeof...(idxs) > 1, 
+                "ERROR: Group::merge takes at least 2 index sets!!");
+
+  static_assert(std::conjunction_v<std::is_same<Idxs, std::vector<int>>...>, 
+                "ERROR: Group::merge unexpected index set type (i.e. incompatible with the result of Group::filter) passed to merge!!");
+
+  std::vector<int> v_merge = {};
+  auto trefs = std::make_tuple( std::cref(idxs)... );
+  auto check_and_put = [&v_merge] (const auto &ridxs) {
+    for (const auto &idx : ridxs) {
+      if (!std::count(std::begin(v_merge), std::end(v_merge), idx))
+        v_merge.emplace_back(idx);
+    }
+  };
+  std::apply([&check_and_put] (const auto &...refs) {
+      (( check_and_put(refs) ), ...);
+    }, trefs);
 
   return v_merge;
 }
