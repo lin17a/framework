@@ -262,7 +262,7 @@ int main() {
   gen_ttbar.set_indexer([] (const auto &g1, const auto &g2)
                        -> std::vector<std::array<int, 2>> {
                           // we use the tags defined above to find the top and antitop
-                          // filter_XXX returns a vector of indices of elements fullfilling the criteria
+                          // filter_* returns a vector of indices of elements fullfilling the criteria
                           // list of currently supported filter operations are in the group header file
                           auto top = g1.filter_equal("dileptonic_ttbar", 1);
                           auto antitop = g2.filter_equal("dileptonic_ttbar", 6);
@@ -533,11 +533,14 @@ int main() {
 
   // use array branches when the group can have more than one element and we are interested in them all
   // in this case, in addition to the attribute array branches, one also gets the n_groupname branch
-  tree_gen.make_array_branches(gen_particle, "mass", "pt", "eta", "phi", "pdg", "dileptonic_ttbar");
+  //tree_gen.make_array_branches(gen_particle, "mass", "pt", "eta", "phi", "pdg", "dileptonic_ttbar");
 
   // to add more branches simply call the make_*_branches again
   // note: each group can contribute branches to a tree exactly once
-  tree_gen.make_single_branches(gen_tt_ll_bb, "llbar_mass", "bbbar_mass", "lb_mass", "lbarbbar_mass", "lbbar_mass", "lbarb_mass");
+  //tree_gen.make_single_branches(gen_tt_ll_bb, "llbar_mass", "bbbar_mass", "lb_mass", "lbarbbar_mass", "lbbar_mass", "lbarb_mass");
+  tree_gen.make_single_branches(gen_tt_ll_bb, 
+                                "lepton_pt", "lepton_eta", "antilepton_pt", "antilepton_eta", 
+                                "bottom_pt", "bottom_eta", "antibottom_pt", "antibottom_eta");
 
   // so far we have defined the inputs we would like to read, how to transform them and the form of our analysis output 
   // there is one last piece of preparation we need to do
@@ -570,47 +573,22 @@ int main() {
 
     // as promised above we would like some acceptance cuts 
     // which we impose on the charged leptons and bottom quarks
-    // we could have used the daughters that we transferred to the gen_tt_ll_bb aggregate
-    // but to highlight some additional features we will instead do it through the gen_particle collections instead
-    // begin by selecting the daughters among all the gen particles using a generic filter method
-    // which needs a function that evaluates to true or false based on a list of attributes
-    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
-        // not lepton or bottom, reject
-        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
-          return false;
+    // the filter_* methods accept an optional argument which is the result of another filter_* call
+    // which constructs the AND of their results
+    auto passll = gen_tt_ll_bb.filter_greater("lepton_pt", 20.f, 
+                                              gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
+                                                                     gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
+                                                                                                 gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
+    auto passllbb = gen_tt_ll_bb.count_greater("bottom_pt", 20.f, 
+                                               gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
+                                                                      gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
+                                                                                                  gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
+                                                                                                                         passll))));
 
-        if (pt > 20.f and std::abs(eta) < 2.4f)
-          return true;
-        else
-          return false;
-      }, "dileptonic_ttbar", "pt", "eta");
-
-    // recall that filter methods return a list of indices
-    // to overwrite the indices list of the group, we use the update_indices method
-    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
-
-    // if all four objects pass the cut, then gen_particle will have 4 elements left
-    // fill also our tree at this point
-    if (gen_particle.n_elements() == 4) {
+    if (passllbb) {
       hist_cut.fill();
       tree_gen.fill();
     }
-
-    /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
-    // by stacking multiple filter_XXX calls
-    // do check that it gives equivalent results as the above!
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("lepton_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("bottom_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f) );
-    gen_tt_ll_bb.update_indices( gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f) );
-
-    if (gen_tt_ll_bb.n_elements() == 1)
-      hist_cut.fill();
-    */
   };
 
   // tell the dataset instance about our event analyzer function

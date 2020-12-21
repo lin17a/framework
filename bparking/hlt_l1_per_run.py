@@ -1,4 +1,6 @@
 #! /bin/env python
+# python hlt_l1_per_run.py --runs run1,run2... --datasets dataset1,dataset2... <--keep/--ignore path1,path2... --output_name output>
+# python hlt_l1_per_run.py --runs $(cat gold_json_hlt_2018 | grep -v '#' | awk '{print $1}' | tr '\n' ',') --datasets ParkingBPH1,ParkingBPH2,ParkingBPH3,ParkingBPH4,ParkingBPH5,ParkingBPH6
 
 import os
 import json
@@ -33,8 +35,11 @@ def validate_environment():
                         return False
 
 parser = ArgumentParser()
-parser.add_argument('runs')
-parser.add_argument('datasets')
+parser.add_argument('--runs', help = 'runs to consider, comma separated', required = True)
+parser.add_argument('--datasets', help = 'datasets to consider, comma separated', required = True)
+parser.add_argument('--output_name', help = '', default = 'hlt_l1.json', required = False)
+parser.add_argument('--keep', help = 'keep the following HLT paths, comma separated. partial name keeps all matches', default = '', required = False)
+parser.add_argument('--ignore', help = 'ignore the following HLT paths, comma separated. partial name ignores all matches', default = '', required = False)
 args = parser.parse_args()
 
 if not validate_environment():
@@ -42,6 +47,11 @@ if not validate_environment():
 
 runs = args.runs.split(',')
 datasets = args.datasets.split(',')
+keep_only = args.keep.split(',')
+ignore_only = args.ignore.split(',')
+
+if (keep_only != [''] and ignore_only != ['']):
+        raise RuntimeError("--keep and --ignore aren't meant to be used together!!")
 
 hlt_l1 = {}
 for run in runs:
@@ -56,6 +66,20 @@ for run in runs:
                         paths = getattr(process.datasets, dataset).value()
 
                         for path in paths:
+                                skip_path = False
+                                if (ignore_only != ['']):
+                                        for ignore in ignore_only:
+                                                skip_path = skip_path or (path.find(ignore) != -1)
+                                        if (skip_path):
+                                                continue
+
+                                keep_path = False
+                                if (keep_only != ['']):
+                                        for keep in keep_only:
+                                                keep_path = keep_path or (path.find(keep) != -1)
+                                        if (not keep_path):
+                                                continue
+
                                 modules = getattr(process, path).moduleNames()
                                 for module in modules:
                                         module_attr = getattr(process, module)
@@ -73,9 +97,8 @@ for run in runs:
                                                                 print seeds
                                                                 raise RuntimeError('Path {} has conflicting L1 seed lists!'.format(path))
         syscall('rm hlttmp.py')
+        syscall('rm hlttmp.pyc')
 
-with open('hlt_l1.json', 'w') as out:
+with open(args.output_name, 'w') as out:
         json.dump(collections.OrderedDict(sorted(hlt_l1.items())), out, indent = 2)
 
-
-# python hlt_l1_per_run.py $(cat gold_json_hlt_2018 | grep -v '#' | awk '{print $1}' | tr '\n' ',') ParkingBPH1,ParkingBPH2,ParkingBPH3,ParkingBPH4,ParkingBPH5,ParkingBPH6
