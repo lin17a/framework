@@ -363,16 +363,13 @@ std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs)
                 "ERROR: Group::merge unexpected index set type (i.e. incompatible with the result of Group::filter) passed to merge!!");
 
   std::vector<int> v_merge = {};
-  auto trefs = std::make_tuple( std::cref(idxs)... );
-  auto check_and_put = [&v_merge] (const auto &ridxs) {
-    for (const auto &idx : ridxs) {
+  auto check_and_put = [&v_merge] (const auto &idxs) {
+    for (const auto &idx : idxs) {
       if (!std::count(std::begin(v_merge), std::end(v_merge), idx))
         v_merge.emplace_back(idx);
     }
   };
-  std::apply([&check_and_put] (const auto &...refs) {
-      (( check_and_put(refs) ), ...);
-    }, trefs);
+  (( check_and_put(idxs) ), ...);
 
   return v_merge;
 }
