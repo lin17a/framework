@@ -204,33 +204,38 @@ int main() {
   //  this is done by providing a function, whose arguments are references to the groups
   //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([&g = lhe_event] (const auto &g1, const auto &g2, const auto &g3, const auto &g4)
+  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const auto &g3, const auto &g4)
                        -> std::vector<std::array<int, 4>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
                           // list of currently supported filter operations are in the group header file
-                          g.update_indices( g.filter_not("ipz", 0.f) );
-                          auto ngluon = g.count_equal("pdg", 21);
+                          // g.update_indices( g.filter_not("ipz", 0.f) );
+                          
+                          auto initial = g.filter_not("ipz", 0.f);
+                          auto ngluon = g.count_equal("pdg", 21, initial);
                             
                           if (ngluon == 1)
                           {
-                            int sign_pz = ((g.get<float>("ipz"))[0] > 0) ? 1 : -1;
+                              return {}; 
+                            int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
                             
-                            float eta_top = g1.get<float>("eta");
-                            float eta_antitop = g2.get<float>("eta");
-                            float phi_top = g1.get<float>("phi");
-                            float phi_antitop = g2.get<float>("phi");
-                            float pt_top = g1.get<float>("pt");
-                            float pt_antitop = g2.get<float>("pt");
-                            float m_top = g1.get<float>("default_mass");
-                            float m_antitop = g2.get<float>("default_mass");
+                            auto tops = g.sort_ascending("pdg", g.merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+                            auto &eta_top_ref = g1.get<float>("eta"); 
+                            float eta_top = eta_top_ref[tops[1]];
+                            float eta_antitop = (g2.get<float>("eta"))[tops[0]];
+                            float phi_top = (g1.get<float>("phi"))[tops[1]];
+                            float phi_antitop = (g2.get<float>("phi"))[tops[0]];
+                            float pt_top = (g1.get<float>("pt"))[tops[1]];
+                            float pt_antitop = (g2.get<float>("pt"))[tops[0]];
+                            float m_top = (g1.get<float>("default_mass"))[tops[1]];
+                            float m_antitop = (g2.get<float>("default_mass"))[tops[0]];
                             TLorentzVector top, antitop;
                             top.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
                             antitop.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
                             TLorentzVector sum = top + antitop;
                             int sign_eta = sum.Eta() > 0 ? 1 : -1;
                            
-                            if (g[0].filter_equal("pdg", 21))
+                            if (g.get<int>("pdg")[initial[0]] == 21)
                             {
                               if (sign_eta != sign_pz) {
                                 ngluon = 2;}
@@ -253,8 +258,10 @@ int main() {
                           {
                              auto top = g1.filter_equal("pdg", 6);
                              auto antitop = g2.filter_equal("pdg", -6);
-                             auto lepton = g3.filter_3values("pdg", 11, 13, 15);
-                             auto antilepton = g4.filter_3values("pdg", -11, -13, -15);
+                             auto lepton = g3.merge(g3.filter_equal("pdg", 11), g3.merge(g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15)));
+                             // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
+                             // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
+                             auto antilepton = g4.merge(g4.filter_equal("pdg", -11), g4.merge(g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15)));
                              return {{top[0], antitop[0], lepton[0], antilepton[0]}};
                           }
 
@@ -742,8 +749,7 @@ int main() {
   // if no weighter is defined, histograms are filled with weight 1
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 
-  float weight2 = 1;
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"),weight2] () { return (weight[0]); });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 = lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -848,7 +854,7 @@ int main() {
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
   //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] > 0) ? 0 : weight[0]; });
+  hist_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 =lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -953,7 +959,7 @@ int main() {
   // that captures the references to all the collections, aggregates and histograms we defined above
   // the only argument to this function is the entry number
   // one way to think about this function is that it contains the instructions on how to analyze a single event
-  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
+  auto f_analyze = [&metadata, &lhe_particle, &lhe_event, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
@@ -963,6 +969,7 @@ int main() {
     // since the collections serve as input to the aggregates, they need to be populated first
     gen_ttbar.populate(entry);
     gen_tt_ll_bb.populate(entry);
+    lhe_event.populate(entry);
 
     //printing
     //metadata.iterate(printer, -1, -1, "weight");
@@ -975,8 +982,11 @@ int main() {
     if (!gen_tt_ll_bb.n_elements())
       return;
 
+    if (!lhe_event.n_elements())
+      return;
+    
     // printing stuff
-    // metadata.iterate(printer, -1, -1, "lumi");
+    // metadata.iterate(logger(std::cout), -1, -1, "lumi", "event");
     // gen_tt_ll_bb.iterate(printer, -1, -1, "lbbar_mass");
     //gen_particle.iterate(printer, -1, -1, "pt");
 

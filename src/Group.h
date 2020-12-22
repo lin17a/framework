@@ -150,6 +150,7 @@ namespace Framework {
     template <typename Number>
     std::vector<int> filter_3values(const std::string &name, Number value1, Number value2, Number value3) const;
     
+    template <typename Number>
     std::vector<int> filter_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     // merge
