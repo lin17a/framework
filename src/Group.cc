@@ -303,6 +303,24 @@ std::vector<int> Framework::Group<Ts...>::filter_not(const std::string &name, Nu
 
 template <typename ...Ts>
 template <typename Number>
+std::vector<int> Framework::Group<Ts...>::filter_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return filter(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+std::vector<int> Framework::Group<Ts...>::filter_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return filter(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
 std::vector<int> Framework::Group<Ts...>::filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {
@@ -342,13 +360,23 @@ std::vector<int> Framework::Group<Ts...>::filter_3values(const std::string &name
 
 
 template <typename ...Ts>
-std::vector<int> merge(const std::vector<int> &v_i1, const std::vector<int> &v_i2)
+template <typename ...Idxs>
+std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs)
 {
-  std::vector<int> v_merge = v_i1;
-  for (const auto &i2 : v_i2) {
-    if (!std::count(std::begin(v_i1), std::end(v_i1), i2))
-      v_merge.emplace_back(i2);
-  }
+  static_assert(sizeof...(idxs) > 1, 
+                "ERROR: Group::merge takes at least 2 index sets!!");
+
+  static_assert(std::conjunction_v<std::is_same<Idxs, std::vector<int>>...>, 
+                "ERROR: Group::merge unexpected index set type (i.e. incompatible with the result of Group::filter) passed to merge!!");
+
+  std::vector<int> v_merge = {};
+  auto check_and_put = [&v_merge] (const auto &idxs) {
+    for (const auto &idx : idxs) {
+      if (!std::count(std::begin(v_merge), std::end(v_merge), idx))
+        v_merge.emplace_back(idx);
+    }
+  };
+  (( check_and_put(idxs) ), ...);
 
   return v_merge;
 }
@@ -415,6 +443,24 @@ template <typename Number>
 int Framework::Group<Ts...>::count_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
 {
   return count(v_idx, [&value] (auto &data) {return data != value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+int Framework::Group<Ts...>::count_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return count(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+int Framework::Group<Ts...>::count_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+{
+  return count(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
 }
 
 

@@ -141,6 +141,12 @@ namespace Framework {
     std::vector<int> filter_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
+    std::vector<int> filter_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    std::vector<int> filter_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
     std::vector<int> filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     /// both are min and max exclusive
@@ -154,8 +160,9 @@ namespace Framework {
     std::vector<int> filter_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx = {-1}) const;
 
     // merge
-    // i.e. getting the OR of two filter results
-    std::vector<int> merge(const std::vector<int> &v_i1, const std::vector<int> &v_i2);
+    // i.e. getting the OR of two or more filter results
+    template <typename ...Idxs>
+    std::vector<int> merge(const Idxs &...idxs);
 
     /// count methods 
     /// ie filters but when one is only interested in the count of indices
@@ -181,6 +188,12 @@ namespace Framework {
 
     template <typename Number>
     int count_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    int count_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
+
+    template <typename Number>
+    int count_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
 
     template <typename Number>
     int count_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx = {-1}) const;
