@@ -113,7 +113,7 @@ namespace Framework {
     /// filter the elements in the collection by some criteria on a given attribute
     /// custom filter needs a function returning a bool and taking two args of type Number
     /// the first arg is the indices to restrict the filtering over
-    /// if it is empty, no restriction is imposed i.e. the current Group indices are used
+    /// if it equals {-1}, no restriction is imposed i.e. the current Group indices are used
     /// second arg is the function running on (single elements of) the attributes
     /// following args are the attributes themselves
     /// returns the indices after filtering
@@ -159,7 +159,7 @@ namespace Framework {
     // merge
     // i.e. getting the OR of two or more filter results
     template <typename ...Idxs>
-    std::vector<int> merge(const Idxs &...idxs);
+    std::vector<int> merge(const Idxs &...idxs) const;
 
     /// count methods 
     /// ie filters but when one is only interested in the count of indices

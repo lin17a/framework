@@ -354,7 +354,7 @@ std::vector<int> Framework::Group<Ts...>::filter_out(const std::string &name, Nu
 
 template <typename ...Ts>
 template <typename ...Idxs>
-std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs)
+std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs) const
 {
   static_assert(sizeof...(idxs) > 1, 
                 "ERROR: Group::merge takes at least 2 index sets!!");
