@@ -33,7 +33,7 @@ namespace Framework {
                   "replacement provided precisely to avoid this quirk of the standard.");
 
   public:
-    using data_type = Types<Ts...>;
+    using base = Group<Ts...>;
 
     /// no default constructor
     Group() = delete;

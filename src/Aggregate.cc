@@ -10,9 +10,9 @@ v_group{ std::ref<Group<Ts...>>(groups)... }
 {
   static_assert(N > 1, "ERROR: Aggregate must be made out of two or more (not necessarily unique) Groups!!");
   static_assert(sizeof...(groups) == N, "ERROR: non-matching template argument count and number of Groups in Aggregate ctor!!");
-  static_assert((std::is_same_v<typename Group<Ts...>::data_type, typename Groups::data_type> and ...), 
+  static_assert((std::is_same_v<typename Group<Ts...>::base, typename Groups::base> and ...), 
                 "ERROR: the underlying Group types going into the Aggregate must be exactly the same!!");
-  //static_assert((contained_in<typename Groups<Ts...>::data_type, typename Group::data_type> and ...), 
+  //static_assert((contained_in<typename Groups<Ts...>::base, typename Group::base> and ...), 
   //              "ERROR: the Aggregate must contain all the types contained by its underlying Groups!!");
 
   reserve(reserve_);
