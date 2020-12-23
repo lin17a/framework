@@ -361,7 +361,7 @@ std::vector<int> Framework::Group<Ts...>::filter_3values(const std::string &name
 
 template <typename ...Ts>
 template <typename ...Idxs>
-std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs)
+std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs) const
 {
   static_assert(sizeof...(idxs) > 1, 
                 "ERROR: Group::merge takes at least 2 index sets!!");
