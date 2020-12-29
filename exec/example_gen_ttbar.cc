@@ -259,13 +259,17 @@ int main() {
   // this is done by providing a function, whose arguments are references to the groups
   // the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   // the first argument is identified with the first group given to the aggregate constructor and so on
-  gen_ttbar.set_indexer([] (const auto &g1, const auto &g2)
+  gen_ttbar.set_indexer([] (const /*Group<boolean, int, float>*/ decltype(gen_particle)::base &g1, const decltype(gen_particle)::base &g2)
                        -> std::vector<std::array<int, 2>> {
                           // we use the tags defined above to find the top and antitop
-                          // filter_* returns a vector of indices of elements fullfilling the criteria
+                          // filter_* returns an index set of elements fullfilling the criteria
                           // list of currently supported filter operations are in the group header file
                           auto top = g1.filter_equal("dileptonic_ttbar", 1);
                           auto antitop = g2.filter_equal("dileptonic_ttbar", 6);
+
+                          // print out the top eta for testing
+                          // commented out merge(indices) is for when one wants to obtain the OR of index sets
+                          //g1.iterate(logger(std::cout), top /*merge(top, antitop)*/, "dileptonic_ttbar", "eta");
 
                           // check that the collection contains exactly one top and one antitop
                           // if not the case, return an empty index list
@@ -573,18 +577,16 @@ int main() {
 
     // as promised above we would like some acceptance cuts 
     // which we impose on the charged leptons and bottom quarks
-    // the filter_* methods accept an optional argument which is the result of another filter_* call
-    // which constructs the AND of their results
-    auto passll = gen_tt_ll_bb.filter_greater("lepton_pt", 20.f, 
-                                              gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
-                                                                     gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
-                                                                                                 gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
-    auto passllbb = gen_tt_ll_bb.count_greater("bottom_pt", 20.f, 
-                                               gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
-                                                                      gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
-                                                                                                  gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
-                                                                                                                         passll))));
+    // the filter_* methods can be chained
+    // resulting in the AND of their results
+    auto passllbb = 
+    gen_tt_ll_bb.filter_greater("lepton_pt", 20.f).filter_in("lepton_eta", -2.4f, 2.4f)
+    .filter_greater("antilepton_pt", 20.f).filter_in("antilepton_eta", -2.4f, 2.4f)
+    .filter_greater("bottom_pt", 20.f).filter_in("bottom_eta", -2.4f, 2.4f)
+    .filter_greater("antibottom_pt", 20.f).filter_in("antibottom_eta", -2.4f, 2.4f);
 
+    // exploit the fact that index set can be converted to bool
+    // which is true if it is non-null (i.e. contains some elements)
     if (passllbb) {
       hist_cut.fill();
       tree_gen.fill();
@@ -596,7 +598,7 @@ int main() {
 
   // and run it!
   // for analyzing only a subset, provide as argument the desired number of events
-  dat.analyze();
+  dat.analyze(/*100*/);
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc

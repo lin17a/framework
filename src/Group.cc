@@ -6,7 +6,8 @@ template <typename ...Ts>
 Framework::Group<Ts...>::Group(const std::string &name_, int counter_) :
 name(name_),
 counter(counter_),
-selected(counter_)
+selected(counter_),
+v_index(this)
 {
   if (counter > 0) {
     for (int iC = 0; iC < counter; ++iC)
@@ -175,7 +176,7 @@ const T& Framework::Group<Ts...>::get(const std::string &name, int index) const
 
 
 template <typename ...Ts>
-std::vector<int> Framework::Group<Ts...>::indices() const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::indices() const
 {
   return v_index;
 }
@@ -183,7 +184,7 @@ std::vector<int> Framework::Group<Ts...>::indices() const
 
 
 template <typename ...Ts>
-const std::vector<int>& Framework::Group<Ts...>::ref_to_indices() const
+const typename Framework::Group<Ts...>::idxs& Framework::Group<Ts...>::ref_to_indices() const
 {
   return v_index;
 }
@@ -200,7 +201,7 @@ int Framework::Group<Ts...>::index(int order) const
 
 
 template <typename ...Ts>
-void Framework::Group<Ts...>::update_indices(const std::vector<int> &v_idx)
+void Framework::Group<Ts...>::update_indices(const typename Framework::Group<Ts...>::idxs &v_idx)
 {
   v_index.clear();
   for (auto idx : v_idx)
@@ -212,20 +213,20 @@ void Framework::Group<Ts...>::update_indices(const std::vector<int> &v_idx)
 
 template <typename ...Ts>
 template <typename Function, typename ...Attributes>
-void Framework::Group<Ts...>::iterate(Function function, int begin, int end, Attributes &&...attrs) const
+void Framework::Group<Ts...>::iterate(Function function, const typename Framework::Group<Ts...>::idxs &v_idx, Attributes &&...attrs) const
 {
   static_assert(sizeof...(attrs) > 0, "ERROR: Group::iterate makes no sense without specifying attributes!!");
-
-  begin = (begin < 0 or begin > selected) ? 0 : begin;
-  end = (end < begin + 1 or end > selected) ? selected : end;
 
   auto iA = (has_attribute(attrs) and ...);
   if (!iA)
     throw std::invalid_argument( "ERROR: Group::iterate: some of the requested attributes are not within the group!!" );
 
-  std::visit([&function, &begin, &end, this] (const auto &...vec) {
-      for (int iE = begin; iE < end; ++iE)
-        function(vec[this->v_index[iE]]...);
+  if (v_idx.ref != this)
+    throw std::invalid_argument( "ERROR: Group::iterate: requesting iteration over index set of another Group is nonsensical!!" );
+
+  std::visit([&function, &v_idx, this] (const auto &...vec) {
+      for (auto idx : v_idx)
+        function(vec[idx]...);
     }, v_data[inquire(attrs)]...);
 }
 
@@ -233,7 +234,8 @@ void Framework::Group<Ts...>::iterate(Function function, int begin, int end, Att
 
 template <typename ...Ts>
 template <typename Compare, typename ...Attributes>
-std::vector<int> Framework::Group<Ts...>::filter(const std::vector<int> &v_idx, Compare compare, Attributes &&...attrs) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter(const typename Framework::Group<Ts...>::idxs &v_idx, 
+                                                                       Compare compare, Attributes &&...attrs) const
 {
   static_assert(sizeof...(attrs) > 0, "ERROR: Group::filter makes no sense without specifying attributes!!");
 
@@ -241,15 +243,18 @@ std::vector<int> Framework::Group<Ts...>::filter(const std::vector<int> &v_idx, 
   if (!iA)
     throw std::invalid_argument( "ERROR: Group::filter some of the requested attributes are not within the group!!" );
 
-  static const std::vector<int> dummy = {-1};
-  return filter_helper( (v_idx == dummy) ? v_index : v_idx, compare, inquire(attrs)... );
+  if (v_idx.ref == this and v_idx.empty())
+    return v_idx;
+
+  return filter_helper( (v_idx.ref != this) ? v_index : v_idx, compare, inquire(attrs)... );
 }
 
 
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_less(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_less(const std::string &name, Number value, 
+                                                                            const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data < value;}, name);
 }
@@ -258,7 +263,8 @@ std::vector<int> Framework::Group<Ts...>::filter_less(const std::string &name, N
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_less_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_less_equal(const std::string &name, Number value, 
+                                                                                  const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data <= value;}, name);
 }
@@ -267,7 +273,8 @@ std::vector<int> Framework::Group<Ts...>::filter_less_equal(const std::string &n
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_greater(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_greater(const std::string &name, Number value, 
+                                                                               const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data > value;}, name);
 }
@@ -276,7 +283,8 @@ std::vector<int> Framework::Group<Ts...>::filter_greater(const std::string &name
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_greater_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_greater_equal(const std::string &name, Number value, 
+                                                                                     const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data >= value;}, name);
 }
@@ -285,7 +293,8 @@ std::vector<int> Framework::Group<Ts...>::filter_greater_equal(const std::string
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_equal(const std::string &name, Number value, 
+                                                                             const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data == value;}, name);
 }
@@ -294,7 +303,8 @@ std::vector<int> Framework::Group<Ts...>::filter_equal(const std::string &name, 
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_not(const std::string &name, Number value, 
+                                                                           const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return data != value;}, name);
 }
@@ -303,7 +313,8 @@ std::vector<int> Framework::Group<Ts...>::filter_not(const std::string &name, Nu
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_absolute_equal(const std::string &name, Number value, 
+                                                                                      const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
 }
@@ -312,7 +323,8 @@ std::vector<int> Framework::Group<Ts...>::filter_absolute_equal(const std::strin
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_absolute_not(const std::string &name, Number value, 
+                                                                                    const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
 }
@@ -321,7 +333,8 @@ std::vector<int> Framework::Group<Ts...>::filter_absolute_not(const std::string 
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_bit_and(const std::string &name, Number value, 
+                                                                               const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&value] (auto &data) {
       if constexpr(std::is_integral_v<std::remove_cv_t<std::remove_reference_t<decltype(data)>>> and 
@@ -336,7 +349,8 @@ std::vector<int> Framework::Group<Ts...>::filter_bit_and(const std::string &name
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_in(const std::string &name, Number min, Number max, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_in(const std::string &name, Number min, Number max, 
+                                                                          const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&min, &max] (auto &data) {return (data > min and data < max);}, name);
 }
@@ -345,7 +359,8 @@ std::vector<int> Framework::Group<Ts...>::filter_in(const std::string &name, Num
 
 template <typename ...Ts>
 template <typename Number>
-std::vector<int> Framework::Group<Ts...>::filter_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_out(const std::string &name, Number min, Number max, 
+                                                                           const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return filter(v_idx, [&min, &max] (auto &data) {return (data < min and data > max);}, name);
 }
@@ -353,160 +368,25 @@ std::vector<int> Framework::Group<Ts...>::filter_out(const std::string &name, Nu
 
 
 template <typename ...Ts>
-template <typename ...Idxs>
-std::vector<int> Framework::Group<Ts...>::merge(const Idxs &...idxs) const
-{
-  static_assert(sizeof...(idxs) > 1, 
-                "ERROR: Group::merge takes at least 2 index sets!!");
-
-  static_assert(std::conjunction_v<std::is_same<Idxs, std::vector<int>>...>, 
-                "ERROR: Group::merge unexpected index set type (i.e. incompatible with the result of Group::filter) passed to merge!!");
-
-  std::vector<int> v_merge = {};
-  auto check_and_put = [&v_merge] (const auto &idxs) {
-    for (const auto &idx : idxs) {
-      if (!std::count(std::begin(v_merge), std::end(v_merge), idx))
-        v_merge.emplace_back(idx);
-    }
-  };
-  (( check_and_put(idxs) ), ...);
-
-  return v_merge;
-}
-
-
-
-template <typename ...Ts>
-template <typename Compare, typename ...Attributes>
-int Framework::Group<Ts...>::count(const std::vector<int> &v_idx, Compare compare, Attributes &&...attrs) const
-{
-  static_assert(sizeof...(attrs) > 0, "ERROR: Group::count makes no sense without specifying attributes!!");
-  return filter(v_idx, compare, std::forward<Attributes>(attrs)...).size();
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_less(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data < value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_less_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data <= value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_greater(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data > value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_greater_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data >= value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data == value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return data != value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_absolute_equal(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return std::abs(data) == value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_absolute_not(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {return std::abs(data) != value;}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_bit_and(const std::string &name, Number value, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&value] (auto &data) {
-      if constexpr(std::is_integral_v<std::remove_cv_t<std::remove_reference_t<decltype(data)>>> and 
-                   std::is_integral_v<std::remove_cv_t<std::remove_reference_t<Number>>>)
-                    return (data & value);
-      else
-        return false;
-    }, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_in(const std::string &name, Number min, Number max, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&min, &max] (auto &data) {return (data > min and data < max);}, name);
-}
-
-
-
-template <typename ...Ts>
-template <typename Number>
-int Framework::Group<Ts...>::count_out(const std::string &name, Number min, Number max, const std::vector<int> &v_idx) const
-{
-  return count(v_idx, [&min, &max] (auto &data) {return (data < min and data > max);}, name);
-}
-
-
-
-template <typename ...Ts>
 template <typename Compare>
-std::vector<int> Framework::Group<Ts...>::sort(const std::vector<int> &v_idx, Compare compare, const std::string &name) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort(const typename Framework::Group<Ts...>::idxs &v_idx, 
+                                                                     Compare compare, const std::string &name) const
 {
   auto iA = inquire(name);
   if (iA == -1)
     throw std::invalid_argument( "ERROR: Group::sort: some of the requested attributes are not within the group!!" );
 
-  static const std::vector<int> dummy = {-1};
-  return sort_helper( (v_idx == dummy) ? v_index : v_idx, compare, iA );
+  if (v_idx.ref == this and v_idx.size() < 2)
+    return v_idx;
+
+  return sort_helper( (v_idx.ref != this) ? v_index : v_idx, compare, iA );
 }
 
 
 
 template <typename ...Ts>
-std::vector<int> Framework::Group<Ts...>::sort_ascending(const std::string &name, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort_ascending(const std::string &name, 
+                                                                               const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return sort(v_idx, [] (const auto &p1, const auto &p2) { return (p1.second < p2.second); }, name);
 }
@@ -514,7 +394,8 @@ std::vector<int> Framework::Group<Ts...>::sort_ascending(const std::string &name
 
 
 template <typename ...Ts>
-std::vector<int> Framework::Group<Ts...>::sort_descending(const std::string &name, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort_descending(const std::string &name, 
+                                                                                const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return sort(v_idx, [] (const auto &p1, const auto &p2) { return (p1.second > p2.second); }, name);
 }
@@ -522,7 +403,8 @@ std::vector<int> Framework::Group<Ts...>::sort_descending(const std::string &nam
 
 
 template <typename ...Ts>
-std::vector<int> Framework::Group<Ts...>::sort_absolute_ascending(const std::string &name, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort_absolute_ascending(const std::string &name, 
+                                                                                        const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return sort(v_idx, [] (const auto &p1, const auto &p2) { return (std::abs(p1.second) < std::abs(p2.second)); }, name);
 }
@@ -530,7 +412,8 @@ std::vector<int> Framework::Group<Ts...>::sort_absolute_ascending(const std::str
 
 
 template <typename ...Ts>
-std::vector<int> Framework::Group<Ts...>::sort_absolute_descending(const std::string &name, const std::vector<int> &v_idx) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort_absolute_descending(const std::string &name, 
+                                                                                         const typename Framework::Group<Ts...>::idxs &v_idx) const
 {
   return sort(v_idx, [] (const auto &p1, const auto &p2) { return (std::abs(p1.second) > std::abs(p2.second)); }, name);
 }
@@ -581,9 +464,10 @@ void Framework::Group<Ts...>::initialize(int init)
 
 template <typename ...Ts>
 template <typename Compare, typename ...Attributes>
-std::vector<int> Framework::Group<Ts...>::filter_helper(const std::vector<int> &v_idx, Compare &compare, Attributes &&...attrs) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::filter_helper(const typename Framework::Group<Ts...>::idxs &v_idx, 
+                                                                              Compare &compare, Attributes &&...attrs) const
 {
-  std::vector<int> v_pass;
+  typename Framework::Group<Ts...>::idxs v_pass(this);
   std::visit([&v_pass, &v_idx, &compare] (const auto &...vec) {
       for (auto index : v_idx) {
         if (compare(vec[index]...))
@@ -598,9 +482,10 @@ std::vector<int> Framework::Group<Ts...>::filter_helper(const std::vector<int> &
 
 template <typename ...Ts>
 template <typename Compare>
-std::vector<int> Framework::Group<Ts...>::sort_helper(const std::vector<int> &v_idx, Compare &compare, int attr) const
+typename Framework::Group<Ts...>::idxs Framework::Group<Ts...>::sort_helper(const typename Framework::Group<Ts...>::idxs &v_idx, 
+                                                                            Compare &compare, int attr) const
 {
-  std::vector<int> v_sort;
+  typename Framework::Group<Ts...>::idxs v_sort(this);
   std::visit([&v_sort, &v_idx, &compare] (const auto &vec) {
       using VT = typename std::decay_t<decltype(vec)>::value_type;
       std::vector<std::pair<int, VT>> v_zip;
