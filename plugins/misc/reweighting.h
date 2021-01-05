@@ -299,15 +299,15 @@ template <typename Number = float>
 double compute_weight(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
                        Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
                        Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-                       Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m,
-                       Number ini1_pt, Number ini1_eta, Number ini1_phi, Number ini1_m,
-                       Number ini2_pt, Number ini2_eta, Number ini2_phi, Number ini2_m,
-                       int pdg1, int pdg2)
+                       Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
+                       //Number ini1_pt, Number ini1_eta, Number ini1_phi, Number ini1_m,
+                       //Number ini2_pt, Number ini2_eta, Number ini2_phi, Number ini2_m,
+                       //int pdg1, int pdg2)
 {
   // what's that?
   double pz_hard_radiation = 0.;
 
-  bool is_gg = is_gg_initial_state(pdg1, pdg2, pz_hard_radiation); 
+ // bool is_gg = is_gg_initial_state(pdg1, pdg2, pz_hard_radiation); 
 	
   HTT_Input httInput;
   httInput.HIGGS_OPTION = 1;
@@ -325,7 +325,7 @@ double compute_weight(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number p
   httInput.P4gen_t[1].SetPtEtaPhiM(aLep_pt, aLep_eta, aLep_phi, aLep_m);
  
   double event_weight = 1.;
-  if (is_gg) event_weight = weight_ggHtt(httInput);
+  //if (is_gg) event_weight = weight_ggHtt(httInput);
 
   printf("Weight=%.3e\n",event_weight);
   return event_weight;
@@ -333,23 +333,23 @@ double compute_weight(Number pTop_pt, Number pTop_eta, Number pTop_phi, Number p
 }
 
 template <typename Number = float>
-auto spin_correlation(const int pdg1, const int pdg2 )
+auto calculate_weight()
 {
 
-  return [pdg1, pdg2] (Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
-                       Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
-                       Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
-                       Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m,
-                       Number ini1_pt, Number ini1_eta, Number ini1_phi, Number ini1_m,
-                       Number ini2_pt, Number ini2_eta, Number ini2_phi, Number ini2_m)
+  return [] (Number pTop_pt, Number pTop_eta, Number pTop_phi, Number pTop_m,
+             Number aTop_pt, Number aTop_eta, Number aTop_phi, Number aTop_m,
+             Number pLep_pt, Number pLep_eta, Number pLep_phi, Number pLep_m,
+             Number aLep_pt, Number aLep_eta, Number aLep_phi, Number aLep_m)
+           //            Number ini1_pt, Number ini1_eta, Number ini1_phi, Number ini1_m,
+           //            Number ini2_pt, Number ini2_eta, Number ini2_phi, Number ini2_m)
   {
     return compute_weight(pTop_pt, pTop_eta, pTop_phi, pTop_m,
                           aTop_pt, aTop_eta, aTop_phi, aTop_m,
                           pLep_pt, pLep_eta, pLep_phi, pLep_m,
-                          aLep_pt, aLep_eta, aLep_phi, aLep_m,
-                          ini1_pt, ini1_eta, ini1_phi, ini1_m,
-                          ini2_pt, ini2_eta, ini2_phi, ini2_m,
-                          pdg1, pdg2);
+                          aLep_pt, aLep_eta, aLep_phi, aLep_m);
+   //                       ini1_pt, ini1_eta, ini1_phi, ini1_m,
+   //                       ini2_pt, ini2_eta, ini2_phi, ini2_m,
+   //                       pdg1, pdg2);
 
   };
 }
