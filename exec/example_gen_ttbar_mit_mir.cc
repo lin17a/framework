@@ -220,15 +220,15 @@ int main() {
                             int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
                             
                             auto tops = g.sort_ascending("pdg", g.merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
-                            auto &eta_top_ref = g1.get<float>("eta"); 
-                            float eta_top = eta_top_ref[tops[1]];
-                            float eta_antitop = (g2.get<float>("eta"))[tops[0]];
-                            float phi_top = (g1.get<float>("phi"))[tops[1]];
-                            float phi_antitop = (g2.get<float>("phi"))[tops[0]];
-                            float pt_top = (g1.get<float>("pt"))[tops[1]];
-                            float pt_antitop = (g2.get<float>("pt"))[tops[0]];
-                            float m_top = (g1.get<float>("default_mass"))[tops[1]];
-                            float m_antitop = (g2.get<float>("default_mass"))[tops[0]];
+                            float eta_top = g1.template get<float>("eta")[tops[0]]; //g1.template get<float>("eta")[top[0]]; 
+                            //float eta_top = eta_top_ref[tops[1]];
+                            float eta_antitop = (g2.template get<float>("eta"))[tops[0]];
+                            float phi_top = (g1.template get<float>("phi"))[tops[1]];
+                            float phi_antitop = (g2.template get<float>("phi"))[tops[0]];
+                            float pt_top = (g1.template get<float>("pt"))[tops[1]];
+                            float pt_antitop = (g2.template get<float>("pt"))[tops[0]];
+                            float m_top = (g1.template get<float>("default_mass"))[tops[1]];
+                            float m_antitop = (g2.template get<float>("default_mass"))[tops[0]];
                             TLorentzVector top, antitop;
                             top.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
                             antitop.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
