@@ -204,7 +204,7 @@ int main() {
   //  this is done by providing a function, whose arguments are references to the groups
   //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const auto &g3, const auto &g4)
+  lhe_event.set_indexer([&g = lhe_particle] (const Group<boolean, int, float> &g1, const Group<boolean, int, float> &g2, const Group<boolean, int, float> &g3, const Group<boolean, int, float> &g4)
                        -> std::vector<std::array<int, 4>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
@@ -220,15 +220,15 @@ int main() {
                             int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
                             
                             auto tops = g.sort_ascending("pdg", g.merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
-                            float eta_top = g1.template get<float>("eta")[tops[0]]; //g1.template get<float>("eta")[top[0]]; 
-                            //float eta_top = eta_top_ref[tops[1]];
-                            float eta_antitop = (g2.template get<float>("eta"))[tops[0]];
-                            float phi_top = (g1.template get<float>("phi"))[tops[1]];
-                            float phi_antitop = (g2.template get<float>("phi"))[tops[0]];
-                            float pt_top = (g1.template get<float>("pt"))[tops[1]];
-                            float pt_antitop = (g2.template get<float>("pt"))[tops[0]];
-                            float m_top = (g1.template get<float>("default_mass"))[tops[1]];
-                            float m_antitop = (g2.template get<float>("default_mass"))[tops[0]];
+                            float eta_top = g1.template get<float>("eta")[tops[0]]; 
+                            float eta_antitop = g2.template get<float>("eta")[tops[1]];
+                            float phi_top = g1.template get<float>("phi")[tops[0]];
+                            float phi_antitop = g2.template get<float>("eta")[tops[1]];
+                            float pt_top = g1.template get<float>("pt")[tops[0]];
+                            float pt_antitop = g2.template get<float>("pt")[tops[1]];
+                            float m_top = g1.template get<float>("default_mass")[tops[0]];
+                            float m_antitop = g2.template get<float>("eta")[tops[1]];
+                            
                             TLorentzVector top, antitop;
                             top.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
                             antitop.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
@@ -258,15 +258,26 @@ int main() {
                           {
                              auto top = g1.filter_equal("pdg", 6);
                              auto antitop = g2.filter_equal("pdg", -6);
-                             auto lepton = g3.merge(g3.filter_equal("pdg", 11), g3.merge(g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15)));
+                             auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
+                             //auto lepton = g3.merge(g3.filter_equal("pdg", 11), g3.merge(g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15)));
                              // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
                              // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
-                             auto antilepton = g4.merge(g4.filter_equal("pdg", -11), g4.merge(g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15)));
+                             //auto antilepton = g4.merge(g4.filter_equal("pdg", -11), g4.merge(g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15)));
+                             auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
                              return {{top[0], antitop[0], lepton[0], antilepton[0]}};
                           }
 
                            return {};
                        });
+
+  
+  lhe_event.add_attribute("weight", calculate_weight<>(), 
+                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
+                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
+                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
+                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass");
+
+
 
   // next we initialize an array-type collection
   
@@ -455,7 +466,7 @@ int main() {
   // this is done by providing a function, whose arguments are references to the groups
   // the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   // the first argument is identified with the first group given to the aggregate constructor and so on
-  gen_ttbar.set_indexer([] (const auto &g1, const auto &g2)
+  gen_ttbar.set_indexer([] (const Group<boolean, int, float> &g1, const Group<boolean, int, float> &g2)
                        -> std::vector<std::array<int, 2>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
@@ -999,27 +1010,43 @@ int main() {
     // but to highlight some additional features we will instead do it through the gen_particle collections instead
     // begin by selecting the daughters among all the gen particles using a generic filter method
     // which needs a function that evaluates to true or false based on a list of attributes
-    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
-        // not lepton or bottom, reject
-        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
-          return false;
+//    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
+//        // not lepton or bottom, reject
+//        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
+//          return false;
+//
+//        if (pt > 20.f and std::abs(eta) < 2.4f)
+//          return true;
+//        else
+//          return false;
+//      }, "dileptonic_ttbar", "pt", "eta");
+//
+//    // recall that filter methods return a list of indices
+//    // to overwrite the indices list of the group, we use the update_indices method
+//    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
+//
+//    // if all four objects pass the cut, then gen_particle will have 4 elements left
+//    // fill also our tree at this point
+//    if (gen_particle.n_elements() == 4) {
+//      hist_cut.fill();
+//      tree_gen.fill();
+//    }
 
-        if (pt > 20.f and std::abs(eta) < 2.4f)
-          return true;
-        else
-          return false;
-      }, "dileptonic_ttbar", "pt", "eta");
+    auto passll = gen_tt_ll_bb.filter_greater("lepton_pt", 20.f, 
+                                              gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
+                                                                     gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
+                                                                                                 gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
+    auto passllbb = gen_tt_ll_bb.count_greater("bottom_pt", 20.f, 
+                                               gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
+                                                                      gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
+                                                                                                  gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
+                                                                                                                         passll))));
 
-    // recall that filter methods return a list of indices
-    // to overwrite the indices list of the group, we use the update_indices method
-    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
-
-    // if all four objects pass the cut, then gen_particle will have 4 elements left
-    // fill also our tree at this point
-    if (gen_particle.n_elements() == 4) {
+    if (passllbb) {
       hist_cut.fill();
       tree_gen.fill();
     }
+
 
     /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
     // by stacking multiple filter_XXX calls
