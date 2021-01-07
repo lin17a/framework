@@ -279,7 +279,7 @@ Framework::Indices<Group> Framework::Indices<Group>::sort_absolute_descending(co
 
 
 template <typename Idx, typename ...Idxs>
-Idx Framework::merge(Idx &index, const Idxs &...indices)
+Idx Framework::merge(const Idx &index, const Idxs &...indices)
 {
   static_assert(sizeof...(indices) > 0, 
                 "ERROR: merge takes at least 2 index sets!!");
@@ -290,13 +290,14 @@ Idx Framework::merge(Idx &index, const Idxs &...indices)
   if (((index.ref != indices.ref) or ...))
     return Idx();
 
-  auto check_and_put = [&index] (const auto &idxs) {
+  Idx result(index);
+  auto check_and_put = [&result, &index] (const auto &idxs) {
     for (const auto &idx : idxs) {
       if (!std::count(std::begin(index), std::end(index), idx))
-        index.emplace_back(idx);
+        result.emplace_back(idx);
     }
   };
   (( check_and_put(indices) ), ...);
 
-  return index;
+  return result;
 }
