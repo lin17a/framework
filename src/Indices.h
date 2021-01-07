@@ -114,7 +114,7 @@ namespace Framework {
   // merge
   // i.e. getting the OR of two or more filter results
   template <typename Idx, typename ...Idxs>
-  Idx merge(Idx &index, const Idxs &...indices);
+  Idx merge(const Idx &index, const Idxs &...indices);
 }
 
 #include "Indices.cc"
