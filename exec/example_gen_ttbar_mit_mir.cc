@@ -212,14 +212,14 @@ int main() {
                           // g.update_indices( g.filter_not("ipz", 0.f) );
                           
                           auto initial = g.filter_not("ipz", 0.f);
-                          auto ngluon = g.count_equal("pdg", 21, initial);
+                          auto ngluon = g.filter_equal("pdg", 21, initial).size();
                             
                           if (ngluon == 1)
                           {
                               return {}; 
                             int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
                             
-                            auto tops = g.sort_ascending("pdg", g.merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+                            auto tops = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
                             float eta_top = g1.template get<float>("eta")[tops[0]]; 
                             float eta_antitop = g2.template get<float>("eta")[tops[1]];
                             float phi_top = g1.template get<float>("phi")[tops[0]];
@@ -1036,11 +1036,11 @@ int main() {
                                               gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
                                                                      gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
                                                                                                  gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
-    auto passllbb = gen_tt_ll_bb.count_greater("bottom_pt", 20.f, 
+    auto passllbb = gen_tt_ll_bb.filter_greater("bottom_pt", 20.f, 
                                                gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
                                                                       gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
                                                                                                   gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
-                                                                                                                         passll))));
+                                                                                                                         passll)))).size();
 
     if (passllbb) {
       hist_cut.fill();
