@@ -137,7 +137,7 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
+  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_new_nanoaod/root_files/ttbarlo_new_nanoaod__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
 
@@ -191,12 +191,14 @@ int main() {
 
   
   // add LHE particle Collection for reweighting
-  Collection<boolean, int, float> lhe_particle("lhe_particle", "nlhePart", 12, 16);
+  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nlhePart", 12, 16);
+  std::cout << "before adding sth" << std::endl;
   lhe_particle.add_attribute("default_mass", "lhePart_mass", 1.f);
   lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
   lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
   lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
   lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
+  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1);
 
   Aggregate lhe_event("lhe_event", 7, 1, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
 
@@ -204,7 +206,7 @@ int main() {
   //  this is done by providing a function, whose arguments are references to the groups
   //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([&g = lhe_particle] (const Group<boolean, int, float> &g1, const Group<boolean, int, float> &g2, const Group<boolean, int, float> &g3, const Group<boolean, int, float> &g4)
+  lhe_event.set_indexer([&g = lhe_particle] (const Group<boolean, int, float, double> &g1, const Group<boolean, int, float, double> &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
                        -> std::vector<std::array<int, 4>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
@@ -269,14 +271,26 @@ int main() {
 
                            return {};
                        });
-
+  std::cout << "after indexer" << std::endl;
   
-  lhe_event.add_attribute("weight", calculate_weight<>(), 
-                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
-                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
-                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass",
-                             "lhe_event::pt", "lhe_event::eta", "lhe_event::phi", "lhe_event::default_mass");
+  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(), 
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+  
+  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(), 
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
 
+  // calculate how precise the weights are by comparing double and float precision
+  lhe_event.transform_attribute("weight_precision", 
+                                   [] (float weight_float, double weight_double) -> double {
+                                     double precision = (weight_double - weight_float) / weight_double;
+                                     return precision;
+                                   }, "weight_float", "weight_double");
 
 
   // next we initialize an array-type collection
@@ -297,6 +311,9 @@ int main() {
   gen_particle.add_attribute("status", "GenPart_status", 1);
   gen_particle.add_attribute("flag", "GenPart_statusFlags", 1);
   gen_particle.add_attribute("mother", "GenPart_genPartIdxMother", 1);
+
+  std::cout << "after add attributes to gen-particle" << std::endl << std::endl;;
+
 
   // on top of adding attributes directly read from the branches
   // we can also add attributes which are transformed from existing attributes
@@ -444,6 +461,8 @@ int main() {
     return mass;
     }, "default_mass", "pdg", "dileptonic_ttbar" ); 
  
+  std::cout << "after gen_particle transforms" << std::endl;
+
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
@@ -748,6 +767,8 @@ int main() {
   spin_add_attribute("cpTTT", spin_correlation<>("cpTTT"));
   spin_add_attribute("cpTP", spin_correlation<>("cpTP"));
 
+  std::cout << "after all add attributes" << std::endl;
+
 
   // let's histogram the attributes we defined above
   // this is done through the histogram class, which handles a group of histograms sharing the same weights and to be filled at the same time
@@ -760,7 +781,8 @@ int main() {
   // if no weighter is defined, histograms are filled with weight 1
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 = lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
+  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight_float"), &weight2 = lhe_event.get<float>("weight_float")] () { return (weight[0] * weight2[0]); });
+  hist_no_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -865,7 +887,8 @@ int main() {
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
   //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 =lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
+  //hist_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 =lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
+  hist_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -1074,8 +1097,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_ttbarlo_spin_positive_no_cut.root");
-  hist_cut.save_as("hist_ttbarlo_spin_positive_cut.root");
+  hist_no_cut.save_as("hist_ttbarlo_reweighting_no_cut.root");
+  hist_cut.save_as("hist_ttbarlo_reweighting_cut.root");
   tree_gen.save();
 
   return 0;
