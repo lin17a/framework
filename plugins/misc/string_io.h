@@ -10,8 +10,9 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <vector>
 
-/// string replacement
+/// string replacement - replaces the first occurence only
 inline bool replace(std::string &str, const std::string &from, const std::string &to) {
   std::string::size_type start_pos = str.find(from);
   if (start_pos == std::string::npos)
@@ -51,6 +52,38 @@ std::string to_str(Number num, const int prec = -1, const bool fixed = false)
   return out_str.str(); 
 }
 
+
+
+/// tokenize a string i.e. split a string into multiple strings by a separator
+/// returns a vector of string; if the separator is not present, the vector is empty
+std::vector<std::string> tokenize(const std::string &str, const std::string &sep)
+{
+  std::vector<std::string> v_str = {};
+  std::string::size_type isep = str.find(sep), iini = 0;
+  while (isep != std::string::npos) {
+    v_str.emplace_back( str.substr(iini, isep - iini) );
+    iini = isep + sep.length();
+    isep = str.find(sep, iini);
+  }
+  v_str.emplace_back( str.substr(iini, isep - iini) );
+
+  return v_str;
+}
+
+
+
+/// strips a given substring from a string
+/// i.e. runs replace() until the substring can no longer be found
+std::string& strip(std::string &str, const std::string &sub)
+{
+  if (sub.length() < 1)
+    return str;
+
+  while( replace(str, sub, "") )
+    ;
+
+  return str;
+}
 
 
 /// returns a logging function to a desired stream
