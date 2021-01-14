@@ -119,7 +119,8 @@ float llbar_dphi(float pt1, float eta1, float phi1, float mass1,
 }
 
 // printing out things for all events like b mass or so
-auto printer = [] (auto &p) {std::cout << p << "\n";};
+auto printer_normal = [] (auto &p) {std::cout << "normal: " << p << "\n";};
+auto printer_reweighted = [] (auto &p) {std::cout << "reweighted: " << p << "\n";};
 
 int main() {
   // the core part of the framework are all within this namespace
@@ -886,9 +887,9 @@ int main() {
   // we can, but don't need to, define the cuts in the filling function themselves
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
-  //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
   //hist_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 =lhe_event.get<float>("weight")] () { return (weight[0] * weight2[0]); });
-  hist_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+  //hist_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -999,6 +1000,7 @@ int main() {
     // with the (compulsory) freedom of timing the call separately for each group
     metadata.populate(entry);
     gen_particle.populate(entry);
+    lhe_particle.populate(entry);
 
     // since the collections serve as input to the aggregates, they need to be populated first
     gen_ttbar.populate(entry);
@@ -1006,7 +1008,9 @@ int main() {
     lhe_event.populate(entry);
 
     //printing
-    //metadata.iterate(printer, -1, -1, "weight");
+    metadata.iterate(printer_normal, metadata.ref_to_indices(), "weight");
+    //std::cout << "weight_float in next line! \n";
+    lhe_event.iterate(printer_reweighted, lhe_event.ref_to_indices(), "weight_float");
     
     // we make an oversimplification here, considering only the events where gen_tt_ll_bb contain an element
     // this is because in the above, we have grouped the gen_ttbar and gen_tt_ll_bb histograms together
@@ -1017,8 +1021,11 @@ int main() {
       return;
 
     if (!lhe_event.n_elements())
-      return;
-    
+      {
+        std::cout << "No elements in lhe_event" << std::endl;
+      	return;
+      }
+
     // printing stuff
     // metadata.iterate(logger(std::cout), -1, -1, "lumi", "event");
     // gen_tt_ll_bb.iterate(printer, -1, -1, "lbbar_mass");
