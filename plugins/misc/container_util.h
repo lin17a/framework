@@ -58,7 +58,7 @@ std::vector<Number> make_interval(Number from, Number to, Number step)
 {
   std::vector<Number> v_interval = {from};
   fill_interval(v_interval, to, step);
-  return (v_interval.size() > 1) ? v_interval : {};
+  return (v_interval.size() > 1) ? v_interval : std::vector<Number>{};
 }
 
 #endif
