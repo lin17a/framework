@@ -1,9 +1,9 @@
-#ifndef FWK_FUNCTION_UTIL_H
-#define FWK_FUNCTION_UTIL_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: a listing of free convenience functions for use in the framework
+
+#ifndef FWK_FUNCTION_UTIL_H
+#define FWK_FUNCTION_UTIL_H
 
 #include <type_traits>
 
@@ -119,22 +119,6 @@ template <size_t N = 1>
 auto all_of() -> decltype(all_of_helper(std::make_index_sequence<N>{}))
 {
   return all_of_helper(std::make_index_sequence<N>{});
-}
-
-
-
-template <typename V>
-int index_with_key(const std::vector<std::pair<std::string, V>> &vec, const std::string &key)
-{
-  for (int iE = 0; iE < vec.size(); ++iE) {
-    auto &[alias, _] = vec[iE];
-    (void) _;
-
-    if (alias == key)
-      return iE;
-  }
-
-  return -1;
 }
 
 

@@ -1,9 +1,10 @@
-#ifndef FWK_ALLOCATOR_H
-#define FWK_ALLOCATOR_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: handling of the Collection to Dataset linking through TObject's Notify mechanism
+
+#ifndef FWK_ALLOCATOR_H
+#define FWK_ALLOCATOR_H
+
 // note: more details in https://root-forum.cern.ch/t/crash-when-reading-too-many-branches/39892/17
 
 #include "Heap.h"

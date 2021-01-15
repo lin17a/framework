@@ -1,9 +1,10 @@
-#ifndef FWK_TREE_H
-#define FWK_TREE_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: an interface for creating output trees from groups
+
+#ifndef FWK_TREE_H
+#define FWK_TREE_H
+
 // note: the class relies on Group::reorder so as to avoid copying, which means any branches whose data assumes a particular order of its elements
 // note: e.g. GenPart_motherIdx will inevitably break i.e. their data becoming meaningless
 

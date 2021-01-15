@@ -1,9 +1,9 @@
-#ifndef FWK_HEAP_H
-#define FWK_HEAP_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: collection of tools that are needed by group and friends
+
+#ifndef FWK_HEAP_H
+#define FWK_HEAP_H
 
 #include <string>
 

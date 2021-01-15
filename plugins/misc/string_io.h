@@ -1,9 +1,9 @@
-#ifndef FWK_STRING_IO_H
-#define FWK_STRING_IO_H
-
 // -*- C++ -*-
 // author: afiq anuar
-// short: a listing of free functions that contains common string io operations
+// short: a listing of free functions that contains common string and i/o operations
+
+#ifndef FWK_STRING_IO_H
+#define FWK_STRING_IO_H
 
 #include <iostream>
 #include <sstream>
@@ -55,8 +55,8 @@ std::string to_str(Number num, const int prec = -1, const bool fixed = false)
 
 
 /// tokenize a string i.e. split a string into multiple strings by a separator
-/// returns a vector of string; if the separator is not present, the vector is empty
-std::vector<std::string> tokenize(const std::string &str, const std::string &sep)
+/// returns a vector of string; vector contains original string if separator isn't present within it
+std::vector<std::string> tokenize(const std::string &str, const std::string &sep = ",")
 {
   std::vector<std::string> v_str = {};
   std::string::size_type isep = str.find(sep), iini = 0;
@@ -74,7 +74,7 @@ std::vector<std::string> tokenize(const std::string &str, const std::string &sep
 
 /// strips a given substring from a string
 /// i.e. runs replace() until the substring can no longer be found
-std::string& strip(std::string &str, const std::string &sub)
+std::string& strip(std::string &str, const std::string &sub = " ")
 {
   if (sub.length() < 1)
     return str;

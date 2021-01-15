@@ -1,9 +1,10 @@
-#ifndef FWK_HISTOGRAM_H
-#define FWK_HISTOGRAM_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: an interface for creating, filling and saving of histograms from groups
+
+#ifndef FWK_HISTOGRAM_H
+#define FWK_HISTOGRAM_H
+
 // note: clone() from another Histogram was attempted, 
 // note: abandoned since there was no obvious way to clone the filler accordingly
 // note: since that requires accessing copying lambdas and updating its captures

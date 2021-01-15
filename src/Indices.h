@@ -1,9 +1,9 @@
-#ifndef FWK_INDICES_H
-#define FWK_INDICES_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: handling of indices; a dedicated struct is needed if we're to make filter calls cuter
+
+#ifndef FWK_INDICES_H
+#define FWK_INDICES_H
 
 namespace Framework {
   template <typename Group>

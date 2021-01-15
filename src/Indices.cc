@@ -284,7 +284,7 @@ Idx Framework::merge(const Idx &index, const Idxs &...indices)
   static_assert(sizeof...(indices) > 0, 
                 "ERROR: merge takes at least 2 index sets!!");
 
-  static_assert(std::conjunction_v<std::is_same<Idx, Idxs...>>, 
+  static_assert(std::conjunction_v<std::is_same<Idx, Idxs>...>, 
                 "ERROR: merge: requesting the merging of incompatible index set types!!");
 
   if (((index.ref != indices.ref) or ...))
