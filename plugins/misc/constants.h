@@ -1,10 +1,10 @@
-#ifndef FWK_CONSTANTS_H
-#define FWK_CONSTANTS_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: some constants that might be needed in analysis
 // note: masses are in GeV, most are taken from PDG 2020
+
+#ifndef FWK_CONSTANTS_H
+#define FWK_CONSTANTS_H
 
 namespace Framework {
   namespace constants {

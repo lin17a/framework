@@ -1,9 +1,9 @@
-#ifndef FWK_COLLECTION_H
-#define FWK_COLLECTION_H
-
 // -*- C++ -*-
 // author: afiq anuar
-// short: collections are groups whose input come from ROOT files - ie it is the group-dataset interface
+// short: collections are groups whose input come from ROOT files - i.e. it is the group-dataset interface
+
+#ifndef FWK_COLLECTION_H
+#define FWK_COLLECTION_H
 
 #include "Group.h"
 #include "Dataset.h"

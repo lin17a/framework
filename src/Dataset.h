@@ -1,9 +1,9 @@
-#ifndef FWK_DATASET_H
-#define FWK_DATASET_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: handling of datasets i.e. sets of files to be treated as single units
+
+#ifndef FWK_DATASET_H
+#define FWK_DATASET_H
 
 #include "Allocator.h"
 #include "TTree.h"

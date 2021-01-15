@@ -1,11 +1,11 @@
-#ifndef FWK_SPIN_CORRELATION_H
-#define FWK_SPIN_CORRELATION_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: for computing ttbar spin correlation variables
 
-#include "misc/function_util.h"
+#ifndef FWK_SPIN_CORRELATION_H
+#define FWK_SPIN_CORRELATION_H
+
+#include "misc/container_util.h"
 #include "misc/constants.h"
 #include "misc/numeric_vector.h"
 

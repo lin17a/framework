@@ -1,10 +1,10 @@
-#ifndef FWK_INPUT_DATASET_H
-#define FWK_INPUT_DATASET_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: functions pertaining to locating and making lists of input datasets for the analysis
 // note: currently the assumption is that all datasets are located locally at DESY
+
+#ifndef FWK_INPUT_DATASET_H
+#define FWK_INPUT_DATASET_H
 
 #include "TSystem.h"
 #include "TString.h"

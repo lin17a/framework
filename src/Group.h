@@ -1,9 +1,10 @@
-#ifndef FWK_GROUP_H
-#define FWK_GROUP_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: group of objects i.e. sets of attributes e.g. a particle has pt eta phi...
+
+#ifndef FWK_GROUP_H
+#define FWK_GROUP_H
+
 // note: attributes that are self-referencing e.g. GenPart_motherIdx can't be handled by iterate(); for this one needs to use operator()
 
 #include "Heap.h"

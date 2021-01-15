@@ -1,9 +1,12 @@
-#ifndef FWK_AGGREGATE_H
-#define FWK_AGGREGATE_H
-
 // -*- C++ -*-
 // author: afiq anuar
 // short: aggregate of groups, with arbitrary indexing rule and attributes that are transformations of groups attributes
+
+#ifndef FWK_AGGREGATE_H
+#define FWK_AGGREGATE_H
+
+#include "Group.h"
+
 // todo: something that allows Group<A, B, C> and Group<B, A> to go into the same Aggregate
 // todo: simple conversion operators is not the way to achieve this given the current model
 // todo: std::visit gives the wrong result for variant<A, B> when it's casted to variant<B, A>
@@ -11,8 +14,7 @@
 // todo: i.e. there is something in variant implementation that is sensitive to type order
 // todo: as for non-template base of Group with virtual functions, the issue is in the need to cast to original type before calling Group::data()
 // todo: and it's not clear how to make Aggregate remember the original types without making it a class member
-
-#include "Group.h"
+// todo: get rid of index masking
 
 namespace Framework {
   template <int N, typename ...Ts>
