@@ -261,12 +261,12 @@ int main() {
                           {
                              auto top = g1.filter_equal("pdg", 6);
                              auto antitop = g2.filter_equal("pdg", -6);
-                             auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
-                             //auto lepton = g3.merge(g3.filter_equal("pdg", 11), g3.merge(g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15)));
+                             //auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
+                             auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
                              // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
                              // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
-                             //auto antilepton = g4.merge(g4.filter_equal("pdg", -11), g4.merge(g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15)));
-                             auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
+                             auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+                             //auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
                              return {{top[0], antitop[0], lepton[0], antilepton[0]}};
                           }
 
