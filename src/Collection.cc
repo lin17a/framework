@@ -50,20 +50,22 @@ void Framework::Collection<Ts...>::reserve(int attr)
 
 template <typename ...Ts>
 template <typename Number>
-bool Framework::Collection<Ts...>::add_attribute(const std::string &name, const std::string &branch, Number _)
+bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const std::string &branch, Number)
 {
-  static_assert(std::is_same_v<Number, bool> or contained_in<Number, Ts...>, 
-                "ERROR: Collection::add_attribute: the initializing Number type is not among the types expected by the Collection!!");
+  return add_attribute(attr, branch);
+}
 
-  using Attribute = typename std::conditional<std::is_same_v<Number, bool>, boolean, Number>::type;
 
-  if (this->has_attribute(name))
+
+template <typename ...Ts>
+bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const std::string &branch)
+{
+  if (this->has_attribute(attr))
     return false;
 
-  (void) _;
-  this->v_attr.emplace_back(name, nullptr);
+  this->v_attr.emplace_back(attr, nullptr);
   v_branch.emplace_back(branch, nullptr);
-  this->v_data.emplace_back(std::vector<Attribute>());
+  this->v_data.emplace_back(std::vector<typename std::tuple_element_t<0, std::tuple<Ts...>>>());
 
   std::visit([init = this->v_index.capacity()] (auto &vec) {vec.reserve(init); vec.clear();}, this->v_data.back());
   return true;
@@ -102,6 +104,36 @@ void Framework::Collection<Ts...>::associate(Dataset<Tree> &dataset)
     auto &[branch_name, branch] = v_branch[iB];
     if (branch_name == "")
       continue;
+
+    // experimenting with automatic type readout
+    auto leaf = tree->GetLeaf(branch_name.c_str());
+    if (leaf == nullptr)
+      leaf = tree->FindLeaf(branch_name.c_str());
+    if (leaf == nullptr)
+      throw std::runtime_error( std::string("ERROR:") + "Collection::associate: unable to find the requested branch " + branch_name + "!!!" );
+
+    std::string btype = leaf->GetTypeName();
+    if (btype == "Int_t")
+      Group<Ts...>::template retype<int>(this->v_data[iB]);
+    else if (btype == "UInt_t")
+      Group<Ts...>::template retype<uint>(this->v_data[iB]);
+    else if (btype == "Float_t")
+      Group<Ts...>::template retype<float>(this->v_data[iB]);
+    else if (btype == "Double_t")
+      Group<Ts...>::template retype<double>(this->v_data[iB]);
+    else if (btype == "Long64_t")
+      Group<Ts...>::template retype<long long>(this->v_data[iB]);
+    else if (btype == "ULong64_t")
+      Group<Ts...>::template retype<unsigned long long>(this->v_data[iB]);
+    else if (btype == "Bool_t")
+      Group<Ts...>::template retype<boolean>(this->v_data[iB]);
+    else if (btype == "Char_t")
+      Group<Ts...>::template retype<char>(this->v_data[iB]);
+    else if (btype == "UChar_t")
+      Group<Ts...>::template retype<unsigned char>(this->v_data[iB]);
+    else
+      throw std::runtime_error( std::string("ERROR:") + "Collection::associate: branch " + branch_name + "has an unsupported type " + btype +
+                                "!!! If it should have been supported, please add it and/or contact the developer.");
 
     tree->SetBranchStatus(branch_name.c_str(), 1);
     std::visit([this, &branch = branch, &branch_name = branch_name] (auto &vec) { 

@@ -48,8 +48,8 @@ int main() {
   Dataset<TChain> dat("mc", "Events");
   // add the files to be analyzed
   dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
-  dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-  dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
+  //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
+  //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
 
   // next step is to specify the attributes to be included in the analysis
   // for this we will make use of two data structures, collections and aggregates
@@ -67,21 +67,15 @@ int main() {
   Collection<uint, unsigned long long, float> metadata("metadata", 5);
 
   // here we add an attribute to the collection
-  // the arguments are the name of the attribute, the name of the branch associated to this attribute, and a hint number
-  // the exact value of the hint number does not matter, but it needs to be of the same type as the data contained in the branch
-  // the type of the branch can be obtained by calling Print() on the tree
-  // in this case the type is an unsigned int i.e. uint 
-  metadata.add_attribute("run", "run", 1U);
+  // the arguments are the name of the attribute and the name of the branch associated to this attribute
+  metadata.add_attribute("run", "run");
 
   // we add second and third attributes
   // attribute names (the first argument) must be unique within each Collection
-  metadata.add_attribute("lumi", "luminosityBlock", 1U);
-  metadata.add_attribute("event", "event", 1ULL);
-
-  // it's worth remarking here that the default type for literal floating point number is double in C++
-  // to obtain a literal float one needs to append an 'f' suffix at the end
-  metadata.add_attribute("weight", "genWeight", 1.f);
-  metadata.add_attribute("lhe_orixwgtup", "LHEWeight_originalXWGTUP", 1.f);
+  metadata.add_attribute("lumi", "luminosityBlock");
+  metadata.add_attribute("event", "event");
+  metadata.add_attribute("weight", "genWeight");
+  metadata.add_attribute("lhe_orixwgtup", "LHEWeight_originalXWGTUP");
 
   // next we initialize an array-type collection
   // the constructor arguments in this case are: 
@@ -93,14 +87,14 @@ int main() {
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
   Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 256);
-  gen_particle.add_attribute("mass", "GenPart_mass", 1.f);
-  gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
-  gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
-  gen_particle.add_attribute("phi", "GenPart_phi", 1.f);
-  gen_particle.add_attribute("pdg", "GenPart_pdgId", 1);
-  gen_particle.add_attribute("status", "GenPart_status", 1);
-  gen_particle.add_attribute("flag", "GenPart_statusFlags", 1);
-  gen_particle.add_attribute("mother", "GenPart_genPartIdxMother", 1);
+  gen_particle.add_attribute("mass", "GenPart_mass");
+  gen_particle.add_attribute("pt", "GenPart_pt");
+  gen_particle.add_attribute("eta", "GenPart_eta");
+  gen_particle.add_attribute("phi", "GenPart_phi");
+  gen_particle.add_attribute("pdg", "GenPart_pdgId");
+  gen_particle.add_attribute("status", "GenPart_status");
+  gen_particle.add_attribute("flag", "GenPart_statusFlags");
+  gen_particle.add_attribute("mother", "GenPart_genPartIdxMother");
 
   // on top of adding attributes directly read from the branches
   // we can also add attributes which are transformed from existing attributes
@@ -131,8 +125,17 @@ int main() {
   gen_particle.transform_attribute("final_w_top_daughter", 
                                    // we capture references to the full array of mother indices and the final top tag
                                    // ordering matters; we can capture final_top only after defining it
-                                   [&idxs = gen_particle.get<int>("mother"), &tops = gen_particle.get<boolean>("final_top")] 
+                                   [&gen_particle] 
                                    (int pdg, int flag, int idx) -> boolean {
+                                     // a note about get<T>:
+                                     // upon calling add_attribute, all attributes are initialized to the first type of the collection
+                                     // which is then adapted to the right type when the input file is scanned
+                                     // which happens later in the dataset.associate(collections...) call below
+                                     // get<T> on the other hand requires the right type right away
+                                     // which may not be available e.g. if it's called in the lambda capture instead of within the body
+                                     static const auto &idxs = gen_particle.get<int>("mother");
+                                     static const auto &tops = gen_particle.get<boolean>("final_top");
+
                                      // first the finality check similar to the top case
                                      if (std::abs(pdg) == 24 and flag & 8192) {
                                        // the particle history log may contain radiation
@@ -598,7 +601,7 @@ int main() {
 
   // and run it!
   // for analyzing only a subset, provide as argument the desired number of events
-  dat.analyze(/*100*/);
+  dat.analyze(/*1000*/);
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
