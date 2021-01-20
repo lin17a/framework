@@ -46,7 +46,7 @@ auto filler_first_of(const Group &group, Attributes &&...attrs)
   auto filler = [&group] (auto &&...idxs) {
     return [&group, idxs...] (Hist *hist, const double &weight) {
       std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
-          if (indices.size()) 
+          if (indices) 
             hist->Fill(vec[indices[0]]..., weight); 
         }, group(idxs)...);
     };
