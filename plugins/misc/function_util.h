@@ -5,8 +5,6 @@
 #ifndef FWK_FUNCTION_UTIL_H
 #define FWK_FUNCTION_UTIL_H
 
-#include <type_traits>
-
 #include "../src/Heap.h"
 
 #include "TH1.h"
@@ -44,12 +42,17 @@ auto filler_first_of(const Group &group, Attributes &&...attrs)
 
   using Hist = typename std::conditional_t<sizeof...(attrs) != 1, typename std::conditional_t<sizeof...(attrs) != 2, TH3, TH2>, TH1>;
 
-  return [&group, attrs...] (Hist *hist, const double &weight) {
-    std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
-        if (indices.size()) 
-          hist->Fill(vec[indices[0]]..., weight); 
-      }, group(attrs)...);
+  auto iattrs = std::make_tuple( group.inquire(attrs)... );
+  auto filler = [&group] (auto &&...idxs) {
+    return [&group, idxs...] (Hist *hist, const double &weight) {
+      std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
+          if (indices.size()) 
+            hist->Fill(vec[indices[0]]..., weight); 
+        }, group(idxs)...);
+    };
   };
+
+  return std::apply(filler, iattrs);
 }
 
 
@@ -61,12 +64,17 @@ auto filler_all_of(const Group &group, Attributes &&...attrs)
 
   using Hist = typename std::conditional_t<sizeof...(attrs) != 1, typename std::conditional_t<sizeof...(attrs) != 2, TH3, TH2>, TH1>;
 
-  return [&group, attrs...] (Hist *hist, const double &weight) {
-    std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
-        for (uint iE = 0; iE < indices.size(); ++iE)
-          hist->Fill(vec[indices[iE]]..., weight);
-      }, group(attrs)...);
+  auto iattrs = std::make_tuple( group.inquire(attrs)... );
+  auto filler = [&group] (auto &&...idxs) {
+    return [&group, idxs...] (Hist *hist, const double &weight) {
+      std::visit([&hist, &weight, &indices = group.ref_to_indices()] (const auto &...vec) {
+          for (int iE = 0; iE < indices.size(); ++iE)
+            hist->Fill(vec[indices[iE]]..., weight);
+        }, group(idxs)...);
+    };
   };
+
+  return std::apply(filler, iattrs);
 }
 
 
@@ -82,9 +90,9 @@ bool any_of_impl(Bools ...bools)
 
 
 template <size_t ...N>
-auto any_of_helper(std::index_sequence<N...>) -> bool(*)(typename std::tuple_element<N, std::array<boolean, sizeof...(N)>>::type...)
+auto any_of_helper(std::index_sequence<N...>) -> bool(*)(typename std::tuple_element_t<N, std::array<boolean, sizeof...(N)>>...)
 {
-  return any_of_impl<typename std::tuple_element<N, std::array<boolean, sizeof...(N)>>::type...>;
+  return any_of_impl<typename std::tuple_element_t<N, std::array<boolean, sizeof...(N)>>...>;
 }
 
 
@@ -108,9 +116,9 @@ bool all_of_impl(Bools ...bools)
 
 
 template <size_t ...N>
-auto all_of_helper(std::index_sequence<N...>) -> bool(*)(typename std::tuple_element<N, std::array<boolean, sizeof...(N)>>::type...)
+auto all_of_helper(std::index_sequence<N...>) -> bool(*)(typename std::tuple_element_t<N, std::array<boolean, sizeof...(N)>>...)
 {
-  return all_of_impl<typename std::tuple_element<N, std::array<boolean, sizeof...(N)>>::type...>;
+  return all_of_impl<typename std::tuple_element_t<N, std::array<boolean, sizeof...(N)>>...>;
 }
 
 
@@ -128,7 +136,7 @@ template <typename Number, size_t ...I, typename Function, size_t ...N>
 auto apply_to_impl(std::index_sequence<I...>, Function function, std::index_sequence<N...>)
 {
   using Traits = function_traits<decltype(function)>;
-  auto f_apply = [function] (typename std::tuple_element<N, std::array<Number, sizeof...(N)>>::type ...args) -> typename Traits::result_type { 
+  auto f_apply = [function] (typename std::tuple_element_t<N, std::array<Number, sizeof...(N)>> ...args) -> typename Traits::result_type { 
     return function( std::get<sizeof...(N) - Traits::arity + I>(std::array<Number, sizeof...(N)>{args...})... );
   };
 
