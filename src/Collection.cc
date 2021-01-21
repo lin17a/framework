@@ -49,15 +49,6 @@ void Framework::Collection<Ts...>::reserve(int attr)
 
 
 template <typename ...Ts>
-template <typename Number>
-bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const std::string &branch, Number)
-{
-  return add_attribute(attr, branch);
-}
-
-
-
-template <typename ...Ts>
 bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const std::string &branch)
 {
   if (this->has_attribute(attr))
@@ -69,6 +60,25 @@ bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const 
 
   std::visit([init = this->v_index.capacity()] (auto &vec) {vec.reserve(init); vec.clear();}, this->v_data.back());
   return true;
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+bool Framework::Collection<Ts...>::add_attribute(const std::string &attr, const std::string &branch, Number)
+{
+  static_assert(contained_in<Number, Ts...> or (std::is_same_v<Number, bool> and contained_in<boolean, Ts...>), 
+                "ERROR: Collection::add_attribute: the initializing Number type is not among the types expected by the Collection!!");
+
+  using Attribute = typename std::conditional<std::is_same_v<Number, bool>, boolean, Number>::type;
+
+  if (add_attribute(attr, branch)) {
+    Group<Ts...>::template retype<Attribute>(this->v_data.back());
+    return true;
+  }
+
+  return false;
 }
 
 

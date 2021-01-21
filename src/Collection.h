@@ -37,17 +37,16 @@ namespace Framework {
     /// reserve the space for expected number of attributes
     void reserve(int attr);
 
-    /// dummy function so as to not break backward compatibility
-    /// FIXME remove when people are done with it
-    /// FIXME Lina, Charlotte and who else?
-    template <typename Number>
-    bool add_attribute(const std::string &attr, const std::string &branch, Number);
-
     /// add an attribute into the collection
     /// returns false upon failure to add the attribute
     /// this can happen if the data type is inconsistent with the collection
     /// returns true upon a successful registration
     bool add_attribute(const std::string &attr, const std::string &branch);
+
+    /// overload for cases when manually specifying the branch type is desirable
+    /// will be overridden by associate or transform_attribute if a wrong type is given 
+    template <typename Number>
+    bool add_attribute(const std::string &attr, const std::string &branch, Number);
 
     /// transform a group of internal attributes into another attribute
     /// the transformation is done element-wise on every element of held data
