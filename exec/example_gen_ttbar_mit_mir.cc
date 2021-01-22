@@ -192,14 +192,14 @@ int main() {
 
   
   // add LHE particle Collection for reweighting
-  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nlhePart", 12, 16);
+  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nLHEPart", 12, 16);
   std::cout << "before adding sth" << std::endl;
-  lhe_particle.add_attribute("default_mass", "lhePart_mass", 1.f);
+  lhe_particle.add_attribute("default_mass", "LHEPart_mass", 1.f);
   lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
   lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
   lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
   lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
-  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1);
+  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
 
   Aggregate lhe_event("lhe_event", 7, 1, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
 
@@ -274,26 +274,6 @@ int main() {
                        });
   std::cout << "after indexer" << std::endl;
   
-  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(), 
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
-  
-  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(), 
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
-                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
-
-  // calculate how precise the weights are by comparing double and float precision
-  lhe_event.transform_attribute("weight_precision", 
-                                   [] (float weight_float, double weight_double) -> double {
-                                     double precision = (weight_double - weight_float) / weight_double;
-                                     return precision;
-                                   }, "weight_float", "weight_double");
-
-
   // next we initialize an array-type collection
   
   // 1- the collection name
@@ -468,7 +448,30 @@ int main() {
   // this is done by the call below, where the arguments are simply all the collections we are considering
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
   // be sure to include all the collections in the call, as step-wise association is currently not supported
-  dat.associate(metadata, gen_particle);
+  dat.associate(metadata, gen_particle, lhe_particle);
+
+
+//  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(), 
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//  
+//  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(), 
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//
+//  // calculate how precise the weights are by comparing double and float precision
+//  lhe_event.transform_attribute("weight_precision", 
+//                                   [] (float weight_float, double weight_double) -> double {
+//                                     double precision = (weight_double - weight_float) / weight_double;
+//                                     return precision;
+//                                   }, "weight_float", "weight_double");
+
+
+
 
   // now we move to the case of attributes that are well-defined only for some selection of elements from the collections
   // for example, the invariant mass of the system of final top quark pair is relevant only for gen_particle with attribute dileptonic_ttbar == 1 or 6
@@ -780,10 +783,10 @@ int main() {
   // here we only take the per-event weight from the metadata collection
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
-  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight_float"), &weight2 = lhe_event.get<float>("weight_float")] () { return (weight[0] * weight2[0]); });
-  hist_no_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+  //hist_no_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -1010,7 +1013,7 @@ int main() {
     //printing
     metadata.iterate(printer_normal, metadata.ref_to_indices(), "weight");
     //std::cout << "weight_float in next line! \n";
-    lhe_event.iterate(printer_reweighted, lhe_event.ref_to_indices(), "weight_float");
+//    lhe_event.iterate(printer_reweighted, lhe_event.ref_to_indices(), "weight_float");
     
     // we make an oversimplification here, considering only the events where gen_tt_ll_bb contain an element
     // this is because in the above, we have grouped the gen_ttbar and gen_tt_ll_bb histograms together
