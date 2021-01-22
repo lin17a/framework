@@ -79,6 +79,9 @@ namespace Framework {
     /// reference to single attribute array - variant version
     const std::variant<std::vector<Ts>...>& operator()(const std::string &name) const;
 
+    /// overload the above for when the attribute index is known
+    const std::variant<std::vector<Ts>...>& operator()(int iattr) const;
+
     /// mutable version of the above
     /// only one version provided, intended for use by Tree only
     std::variant<std::vector<Ts>...>& mref_to_attribute(const std::string &name);
@@ -194,6 +197,15 @@ namespace Framework {
   protected:
     /// this method ensures that all attributes have the proper capacity
     void initialize(int init);
+
+    /// update the type of the attribute
+    template <typename Number>
+    void retype(std::variant<std::vector<Ts>...> &dat);
+
+    /// helper for transform_attribute
+    /// where we need to call different instantiations of retype
+    template <typename Tuple, typename Traits, std::size_t ...Is>
+    void retype_per_function(const Tuple &tuple, Traits, std::index_sequence<Is...>);
 
     /// helper that actually does the filtering
     template <typename Compare, typename ...Attributes>

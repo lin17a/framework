@@ -98,6 +98,7 @@ bool Framework::Group<Ts...>::transform_attribute(const std::string &attr, Funct
   };
 
   const std::array<int, sizeof...(attrs)> iattrs = {inquire(attrs)...};
+  retype_per_function(zip_1n(v_data, iattrs), Traits{}, std::make_index_sequence<Traits::arity>{});
 
   auto f_apply = [f_loop, this, iattr = v_data.size(), iattrs] () -> void {
     auto refs = std::tuple_cat(std::make_tuple(std::ref( std::get<std::vector<typename Traits::result_type>>(v_data[iattr]) )), 
@@ -141,6 +142,14 @@ const std::variant<std::vector<Ts>...>& Framework::Group<Ts...>::operator()(cons
     throw std::invalid_argument( "ERROR: Group::get: requested attribute " + name + " is not within the group!!" );
 
   return v_data[iA];
+}
+
+
+
+template <typename ...Ts>
+const std::variant<std::vector<Ts>...>& Framework::Group<Ts...>::operator()(int iattr) const
+{
+  return v_data[iattr];
 }
 
 
@@ -465,6 +474,29 @@ void Framework::Group<Ts...>::initialize(int init)
 
   for (auto &dat : v_data)
     std::visit([init] (auto &vec) {vec.reserve(init); vec.clear();}, dat);
+}
+
+
+
+template <typename ...Ts>
+template <typename Number>
+void Framework::Group<Ts...>::retype(std::variant<std::vector<Ts>...> &dat)
+{
+  if constexpr (contained_in<Number, Ts...>) {
+      if (std::get_if<std::vector<Number>>(&dat) == nullptr) {
+        dat = std::vector<Number>();
+        std::visit([init = v_index.capacity()] (auto &vec) {vec.reserve(init); vec.clear();}, dat);
+      }
+    }
+}
+
+
+
+template <typename ...Ts>
+template <typename Tuple, typename Traits, std::size_t ...Is>
+void Framework::Group<Ts...>::retype_per_function(const Tuple &tuple, Traits, std::index_sequence<Is...>)
+{
+  (retype<typename Traits::template bare_arg<Is>>(std::get<Is>(tuple)), ...);
 }
 
 

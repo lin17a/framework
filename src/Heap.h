@@ -98,10 +98,10 @@ struct function_traits<Ret(Cls::*)(Args...) const>
   using tuple_arg_bare_types = std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...>;
 
   template <size_t i>
-  using arg = typename std::tuple_element<i, tuple_arg_types>::type;
+  using arg = typename std::tuple_element_t<i, tuple_arg_types>;
 
   template <size_t i>
-  using bare_arg = typename std::tuple_element<i, tuple_arg_bare_types>::type;
+  using bare_arg = typename std::tuple_element_t<i, tuple_arg_bare_types>;
 };
 
 // specialization for mutable lambda
@@ -114,10 +114,10 @@ struct function_traits<Ret(Cls::*)(Args...)>
   using tuple_arg_bare_types = std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...>;
 
   template <size_t i>
-  using arg = typename std::tuple_element<i, tuple_arg_types>::type;
+  using arg = typename std::tuple_element_t<i, tuple_arg_types>;
 
   template <size_t i>
-  using bare_arg = typename std::tuple_element<i, tuple_arg_bare_types>::type;
+  using bare_arg = typename std::tuple_element_t<i, tuple_arg_bare_types>;
 };
 
 // specialization for regular functions
@@ -130,10 +130,10 @@ struct function_traits<Ret(Args...)>
   using tuple_arg_bare_types = std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...>;
 
   template <size_t i>
-  using arg = typename std::tuple_element<i, tuple_arg_types>::type;
+  using arg = typename std::tuple_element_t<i, tuple_arg_types>;
 
   template <size_t i>
-  using bare_arg = typename std::tuple_element<i, tuple_arg_bare_types>::type;
+  using bare_arg = typename std::tuple_element_t<i, tuple_arg_bare_types>;
 };
 
 

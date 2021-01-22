@@ -44,10 +44,10 @@ bool Framework::Tree::make_single_branches(Group &group, Attributes &&...attrs)
         [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<double> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), &vec[0], (name + "_" + attr + "/D").c_str());},
 
-        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<long> &vec)
+        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<long long> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), &vec[0], (name + "_" + attr + "/L").c_str());},
 
-        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<ulong> &vec)
+        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<unsigned long long> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), &vec[0], (name + "_" + attr + "/l").c_str());},
 
         [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB]] (std::vector<boolean> &vec)
@@ -101,10 +101,10 @@ bool Framework::Tree::make_array_branches(Group &group, Attributes &&...attrs)
         [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<double> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), vec.data(), (name + "_" + attr + "[n_"+ name + "]/D").c_str());},
 
-        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<long> &vec)
+        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<long long> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), vec.data(), (name + "_" + attr + "[n_"+ name + "]/L").c_str());},
 
-        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<ulong> &vec)
+        [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<unsigned long long> &vec)
           {branch = ptr->Branch((name + "_" + attr).c_str(), vec.data(), (name + "_" + attr + "[n_"+ name + "]/l").c_str());},
 
         [&ptr = ptr, &attr = v_attr[iB], &name = group.name, &branch = std::get<2>(v_branch.back())[iB + 1]] (std::vector<boolean> &vec)

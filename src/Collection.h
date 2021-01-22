@@ -41,11 +41,12 @@ namespace Framework {
     /// returns false upon failure to add the attribute
     /// this can happen if the data type is inconsistent with the collection
     /// returns true upon a successful registration
-    /// _ is the initial value to be used for this attribute
-    /// matching the type that is used by the branch
-    /// note that exact value of _ doesn't matter, only the type does
+    bool add_attribute(const std::string &attr, const std::string &branch);
+
+    /// overload for cases when manually specifying the branch type is desirable
+    /// will be overridden by associate or transform_attribute if a wrong type is given 
     template <typename Number>
-    bool add_attribute(const std::string &name, const std::string &branch, Number _);
+    bool add_attribute(const std::string &attr, const std::string &branch, Number);
 
     /// transform a group of internal attributes into another attribute
     /// the transformation is done element-wise on every element of held data
