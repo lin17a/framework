@@ -190,90 +190,6 @@ int main() {
   metadata.add_attribute("weight", "genWeight", 1.f);
   metadata.add_attribute("lhe_orixwgtup", "LHEWeight_originalXWGTUP", 1.f);
 
-  
-  // add LHE particle Collection for reweighting
-  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nLHEPart", 12, 16);
-  std::cout << "before adding sth" << std::endl;
-  lhe_particle.add_attribute("default_mass", "LHEPart_mass", 1.f);
-  lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
-  lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
-  lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
-  lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
-  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
-
-  Aggregate lhe_event("lhe_event", 7, 1, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
-
-  //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
-  //  this is done by providing a function, whose arguments are references to the groups
-  //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
-  //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([&g = lhe_particle] (const Group<boolean, int, float, double> &g1, const Group<boolean, int, float, double> &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
-                       -> std::vector<std::array<int, 4>> {
-                          // we use the tags defined above to find the top and antitop
-                          // filter_XXX returns a vector of indices of elements fullfilling the criteria
-                          // list of currently supported filter operations are in the group header file
-                          // g.update_indices( g.filter_not("ipz", 0.f) );
-                          
-                          auto initial = g.filter_not("ipz", 0.f);
-                          auto ngluon = g.filter_equal("pdg", 21, initial).size();
-                            
-                          if (ngluon == 1)
-                          {
-                              return {}; 
-                            int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
-                            
-                            auto tops = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
-                            float eta_top = g1.template get<float>("eta")[tops[0]]; 
-                            float eta_antitop = g2.template get<float>("eta")[tops[1]];
-                            float phi_top = g1.template get<float>("phi")[tops[0]];
-                            float phi_antitop = g2.template get<float>("eta")[tops[1]];
-                            float pt_top = g1.template get<float>("pt")[tops[0]];
-                            float pt_antitop = g2.template get<float>("pt")[tops[1]];
-                            float m_top = g1.template get<float>("default_mass")[tops[0]];
-                            float m_antitop = g2.template get<float>("eta")[tops[1]];
-                            
-                            TLorentzVector top, antitop;
-                            top.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
-                            antitop.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
-                            TLorentzVector sum = top + antitop;
-                            int sign_eta = sum.Eta() > 0 ? 1 : -1;
-                           
-                            if (g.get<int>("pdg")[initial[0]] == 21)
-                            {
-                              if (sign_eta != sign_pz) {
-                                ngluon = 2;}
-                              else {
-                                ngluon = 0; }
-                            } 
-                            else
-                            {
-                              if (sign_eta != sign_pz) {
-                                ngluon = 0; }
-                              else {
-                                ngluon = 2; }
-                            }
-                          }
-                          
-                          if (ngluon == 0) { 
-                            return {}; }
-                        
-                          if (ngluon == 2)
-                          {
-                             auto top = g1.filter_equal("pdg", 6);
-                             auto antitop = g2.filter_equal("pdg", -6);
-                             //auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
-                             auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
-                             // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
-                             // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
-                             auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
-                             //auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
-                             return {{top[0], antitop[0], lepton[0], antilepton[0]}};
-                          }
-
-                           return {};
-                       });
-  std::cout << "after indexer" << std::endl;
-  
   // next we initialize an array-type collection
   
   // 1- the collection name
@@ -283,7 +199,7 @@ int main() {
   // as with 3- the framework adapts the memory layout as the need arises, but it is good practice to provide a helpful hint
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 12, 8192);
+  Collection<boolean, int, float, double> gen_particle("gen_particle", "nGenPart", 12, 8192);
   gen_particle.add_attribute("default_mass", "GenPart_mass", 1.f);
   gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
   gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
@@ -294,7 +210,6 @@ int main() {
   gen_particle.add_attribute("mother", "GenPart_genPartIdxMother", 1);
 
   std::cout << "after add attributes to gen-particle" << std::endl << std::endl;;
-
 
   // on top of adding attributes directly read from the branches
   // we can also add attributes which are transformed from existing attributes
@@ -443,6 +358,193 @@ int main() {
     }, "default_mass", "pdg", "dileptonic_ttbar" ); 
  
   std::cout << "after gen_particle transforms" << std::endl;
+  
+  // add LHE particle Collection for reweighting
+  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nLHEPart", 12, 16);
+  std::cout << "before adding sth" << std::endl;
+  lhe_particle.add_attribute("default_mass", "LHEPart_mass", 1.f);
+  lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
+  lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
+  lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
+  lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
+  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
+
+  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle);
+
+  std::cout << "before lhe_indexer" << std::endl;
+
+  //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
+  //  this is done by providing a function, whose arguments are references to the groups
+  //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
+  //  the first argument is identified with the first group given to the aggregate constructor and so on
+  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
+                       -> std::vector<std::array<int, 4>> {
+                          // we use the tags defined above to find the top and antitop
+                          // filter_XXX returns a vector of indices of elements fullfilling the criteria
+                          // list of currently supported filter operations are in the group header file
+                          // g.update_indices( g.filter_not("ipz", 0.f) );
+                         
+                          std::cout << "lhe_event indexer beginning" << std::endl;
+ 
+                          auto initial = g.filter_not("ipz", 0.f);
+                          auto ngluon = g.filter_equal("pdg", 21, initial).size();
+                          std::cout << "lhe_event indexer after ngluon" << std::endl;
+                            
+                            
+                          auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
+                          auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+                          auto bottoms = g.sort_descending("pdg", merge(g.filter_equal("pdg", 5), g.filter_equal("pdg", -5)));
+                          auto neutrino = merge(g3.filter_equal("pdg", 12), g3.filter_equal("pdg", 14), g3.filter_equal("pdg", 16));
+                          auto antineutrino = merge(g4.filter_equal("pdg", -12), g4.filter_equal("pdg", -14), g4.filter_equal("pdg", -16));
+   
+                          float eta_lepton = g3.template get<float>("eta")[lepton[0]]; 
+                          float eta_antilepton = g4.template get<float>("eta")[antilepton[0]];
+                          float phi_lepton = g3.template get<float>("phi")[lepton[0]];
+                          float phi_antilepton = g4.template get<float>("phi")[antilepton[0]];
+                          float pt_lepton = g3.template get<float>("pt")[lepton[0]];
+                          float pt_antilepton = g4.template get<float>("pt")[antilepton[0]];
+                          float m_lepton = g3.template get<float>("default_mass")[lepton[0]];
+                          float m_antilepton = g4.template get<float>("default_mass")[antilepton[0]];
+                          
+                          float eta_bottom = g3.template get<float>("eta")[bottoms[0]]; 
+                          float eta_antibottom = g3.template get<float>("eta")[bottoms[1]];
+                          float phi_bottom = g3.template get<float>("phi")[bottoms[0]];
+                          float phi_antibottom = g3.template get<float>("phi")[bottoms[1]];
+                          float pt_bottom = g3.template get<float>("pt")[bottoms[0]];
+                          float pt_antibottom = g3.template get<float>("pt")[bottoms[1]];
+                          float m_bottom = g3.template get<float>("default_mass")[bottoms[0]];
+                          float m_antibottom = g3.template get<float>("default_mass")[bottoms[1]];
+                          
+                          float eta_neutrino = g3.template get<float>("eta")[neutrino[0]]; 
+                          float eta_antineutrino = g4.template get<float>("eta")[antineutrino[0]];
+                          float phi_neutrino = g3.template get<float>("phi")[neutrino[0]];
+                          float phi_antineutrino = g4.template get<float>("phi")[antineutrino[0]];
+                          float pt_neutrino = g3.template get<float>("pt")[neutrino[0]];
+                          float pt_antineutrino = g4.template get<float>("pt")[antineutrino[0]];
+                          float m_neutrino = g3.template get<float>("default_mass")[neutrino[0]];
+                          float m_antineutrino = g4.template get<float>("default_mass")[antineutrino[0]];
+                            
+                          TLorentzVector lepton_vec, antilepton_vec, bottom_vec, antibottom_vec, neutrino_vec, antineutrino_vec;
+                          lepton_vec.SetPtEtaPhiM(pt_lepton, eta_lepton, phi_lepton, m_lepton);
+                          antilepton_vec.SetPtEtaPhiM(pt_antilepton, eta_antilepton, phi_antilepton, m_antilepton);
+                          bottom_vec.SetPtEtaPhiM(pt_bottom, eta_bottom, phi_bottom, m_bottom);
+                          antibottom_vec.SetPtEtaPhiM(pt_antibottom, eta_antibottom, phi_antibottom, m_antibottom);
+                          neutrino_vec.SetPtEtaPhiM(pt_neutrino, eta_neutrino, phi_neutrino, m_neutrino);
+                          antineutrino_vec.SetPtEtaPhiM(pt_antineutrino, eta_antineutrino, phi_antineutrino, m_antineutrino);
+                         
+                          TLorentzVector sum_lbar_b_n = antilepton_vec + bottom_vec + neutrino_vec;
+                          double_t sum_lbar_b_n_X = sum_lbar_b_n.X();
+                          double_t sum_lbar_b_n_Y = sum_lbar_b_n.Y();
+                          double_t sum_lbar_b_n_Z = sum_lbar_b_n.Z();
+                          double_t sum_lbar_b_n_T = sum_lbar_b_n.T();
+                          std::cout << "sum_lbar_b_n: ( " << sum_lbar_b_n_X << ", " << sum_lbar_b_n_Y << ", " << sum_lbar_b_n_Z << ", " << sum_lbar_b_n_T << " )" << std::endl;
+                          
+                          TLorentzVector sum_l_bbar_nbar = lepton_vec + antibottom_vec + antineutrino_vec;
+                          double_t sum_l_bbar_nbar_X = sum_l_bbar_nbar.X();
+                          double_t sum_l_bbar_nbar_Y = sum_l_bbar_nbar.Y();
+                          double_t sum_l_bbar_nbar_Z = sum_l_bbar_nbar.Z();
+                          double_t sum_l_bbar_nbar_T = sum_l_bbar_nbar.T();
+                          std::cout << "sum_l_bbar_nbar: ( " << sum_l_bbar_nbar_X << ", " << sum_l_bbar_nbar_Y << ", " << sum_l_bbar_nbar_Z << ", " << sum_l_bbar_nbar_T << " )" << std::endl;
+  
+                          if (ngluon == 1)
+                          {
+                            std::cout << "lhe_event indexer ngluon == 1" << std::endl;
+                            int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
+                            
+                          
+                            //auto tops = g.sort_descending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+                            auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
+                            auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
+                            float eta_top = g1.template get<float>("eta")[top[0]]; 
+                            float eta_antitop = g2.template get<float>("eta")[antitop[0]];
+                            float phi_top = g1.template get<float>("phi")[top[0]];
+                            float phi_antitop = g2.template get<float>("phi")[antitop[0]];
+                            float pt_top = g1.template get<float>("pt")[top[0]];
+                            float pt_antitop = g2.template get<float>("pt")[antitop[0]];
+                            float m_top = g1.template get<float>("default_mass")[top[0]];
+                            float m_antitop = g2.template get<float>("default_mass")[antitop[0]];
+                            
+                            TLorentzVector top_vec, antitop_vec;
+                            top_vec.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
+                            antitop_vec.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
+                            
+                            
+                            TLorentzVector sum = top_vec + antitop_vec;
+                            int sign_eta = sum.Eta() > 0 ? 1 : -1;
+ 
+                            if (g.get<int>("pdg")[initial[0]] == 21)
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 2;}
+                              else {
+                                ngluon = 0; }
+                            } 
+                            else
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 0; }
+                              else {
+                                ngluon = 2; }
+                            }
+                          }
+                          
+                          if (ngluon == 0) { 
+                            std::cout << "lhe_event indexer ngluon == 0" << std::endl;
+                            return {}; }
+                        
+                          if (ngluon == 2)
+                          {
+                             std::cout << "lhe_event indexer ngluon == 2" << std::endl;
+                             auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
+                             std::cout << "lhe_event indexer ngluon == 2, after top" << std::endl;
+                             auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
+                             std::cout << "lhe_event indexer ngluon == 2, after antitop" << std::endl;
+                          
+                             //auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
+                             auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
+                             std::cout << "lhe_event indexer ngluon == 2, after lepton" << std::endl;
+                             // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
+                             // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
+                             auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+                             std::cout << "lhe_event indexer ngluon == 2, after antilepton" << std::endl;
+                             //auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
+                             int empty = 0;
+                             std::cout << "top size:" << top.size() << std::endl;
+                             std::cout << "antitop size:" << antitop.size() << std::endl;
+                             if (top.size() != 1){ 
+                               std::cout << "top is empty" << std::endl;
+                               empty = 1;
+                             }
+                             else {
+                               std::cout << "top is NOT empty" << std::endl;
+                             }
+                             if  (antitop.size() != 1) { 
+                               std::cout << "antitop is empty" << std::endl;
+                               empty = 1;
+                             }
+                             else {
+                               std::cout << "antitop is NOT empty" << std::endl;
+                             }
+                             if  (lepton.size() != 1){ 
+                               std::cout << "lepton is empty" << std::endl;
+                               empty = 1;
+                             }
+                             if (antilepton.size() != 1){
+                               std::cout << "antilepton is empty" << std::endl;
+                               empty = 1;
+                             }
+                             if (empty) {
+                               return{};}
+                             else {std::cout << "es geht!!" << std::endl;}
+                             return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+                          }
+                          std::cout << "lhe_event indexer end" << std::endl;
+
+                          return {};
+                       });
+  std::cout << "after lhe_indexer" << std::endl;
+  
+
 
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
@@ -485,11 +587,13 @@ int main() {
   // it is worth noting that currently an aggregate can only be made from groups of the same type
   Aggregate gen_ttbar("gen_ttbar", 7, 1, gen_particle, gen_particle);
 
+  std::cout << "before gen_ttbar_indexer" << std::endl;
+
   // when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
   // this is done by providing a function, whose arguments are references to the groups
   // the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   // the first argument is identified with the first group given to the aggregate constructor and so on
-  gen_ttbar.set_indexer([] (const Group<boolean, int, float> &g1, const Group<boolean, int, float> &g2)
+  gen_ttbar.set_indexer([&g = gen_particle] (const Group<boolean, int, float, double> &g1, const Group<boolean, int, float, double> &g2)
                        -> std::vector<std::array<int, 2>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
@@ -497,13 +601,56 @@ int main() {
                           auto top = g1.filter_equal("dileptonic_ttbar", 1);
                           auto antitop = g2.filter_equal("dileptonic_ttbar", 6);
 
+                          auto tops = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+                          auto tops_22 = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6).filter_equal("status", 22), g.filter_equal("pdg", -6).filter_equal("status", 22)));
+                          std::cout << "tops.size" << tops.size() << std::endl;
+                          std::cout << "tops_22.size" << tops_22.size() << std::endl;
+                          float eta_top = g1.template get<float>("eta")[tops_22[0]]; 
+                          float eta_antitop = g2.template get<float>("eta")[tops_22[1]];
+                          float phi_top = g1.template get<float>("phi")[tops_22[0]];
+                          float phi_antitop = g2.template get<float>("phi")[tops_22[1]];
+                          float pt_top = g1.template get<float>("pt")[tops_22[0]];
+                          float pt_antitop = g2.template get<float>("pt")[tops_22[1]];
+                          float m_top = g1.template get<float>("default_mass")[tops_22[0]];
+                          float m_antitop = g2.template get<float>("default_mass")[tops_22[1]];
+                            
+                          TLorentzVector top_vec, antitop_vec;
+                          top_vec.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
+                          antitop_vec.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
+                          double_t top_X = top_vec.X();
+                          double_t top_Y = top_vec.Y();
+                          double_t top_Z = top_vec.Z();
+                          double_t top_T = top_vec.T();
+                          double_t antitop_X = antitop_vec.X();
+                          double_t antitop_Y = antitop_vec.Y();
+                          double_t antitop_Z = antitop_vec.Z();
+                          double_t antitop_T = antitop_vec.T();
+                          
+                          std::cout << "top_p4 = ( " << top_X << ", " << top_Y << ", " << top_Z << ", " << top_T << " )" << std::endl;  
+                          std::cout << "antitop_p4 = ( " << antitop_X << ", " << antitop_Y << ", " << antitop_Z << ", " << antitop_T << " )"<< std::endl;  
+
                           // check that the collection contains exactly one top and one antitop
                           // if not the case, return an empty index list
-                          if (top.size() != 1 or antitop.size() != 1)
+                          if (top.size() != 1 or antitop.size() != 1){
+                            std::cout << "tops are empty in gen_ttbar" << std::endl;
                             return {};
-
+                          }
+                          else { 
+                            int top_status = g1.template get<int>("status")[tops[0]];
+                            int antitop_status = g2.template get<int>("status")[tops[1]];
+                            std::cout << "tops are there, status top: " << top_status << ", antitop status: " << antitop_status << std::endl;
+                            int top_22 = g.filter_equal("pdg", 6).filter_equal("status", 22).size();
+                            int top_44 = g.filter_equal("pdg", 6).filter_equal("status", 44).size();
+                            int top_62 = g.filter_equal("pdg", 6).filter_equal("status", 62).size();
+                            int antitop_22 = g.filter_equal("pdg", -6).filter_equal("status", 22).size();
+                            int antitop_44 = g.filter_equal("pdg", -6).filter_equal("status", 44).size();
+                            int antitop_62 = g.filter_equal("pdg", -6).filter_equal("status", 62).size();
+                            std::cout << "top_22: " << top_22 << ", top_44: " << top_44 << ", top_62: " << top_62 << std::endl; 
+                            std::cout << "antitop_22: " << antitop_22 << ", antitop_44: " << antitop_44 << ", antitop_62: " << antitop_62 << std::endl; 
+                          }
                           return {{top[0], antitop[0]}};
                        });
+  std::cout << "after gen_ttbar_indexer";
 
   // having specified the index, we can now specify the attributes
   // for aggregates, the argument to add_attributes are:
@@ -598,6 +745,8 @@ int main() {
   // where we are interested in six particles: tops, charged leptons and bottoms
   Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 22, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
 
+  std::cout << "before gen_tt_ll_bb_indexer" << std::endl;
+
   // set the indices similarly as above
   gen_tt_ll_bb.set_indexer([] (const auto &g1, const auto &g2, const auto &g3, const auto &g4, const auto &g5, const auto &g6)
                        -> std::vector<std::array<int, 6>> {
@@ -616,6 +765,8 @@ int main() {
 
                           return {{top[0], antitop[0], lepton[0], antilepton[0], bottom[0], antibottom[0]}};
                        });
+
+  std::cout << "after gen_tt_ll_bb_indexer" << std::endl;
 
   // having to define a masking for each case can be cumbersome
   // so we will be using the function_util plugin to simplify the work somewhat
@@ -1001,14 +1152,22 @@ int main() {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
+    std::cout << "populate metadata" << std::endl;
     metadata.populate(entry);
+    std::cout << "populate gen_particle" << std::endl;
     gen_particle.populate(entry);
+    std::cout << "populate lhe_particle" << std::endl;
     lhe_particle.populate(entry);
 
     // since the collections serve as input to the aggregates, they need to be populated first
+    std::cout << "populate gen_ttbar" << std::endl;
     gen_ttbar.populate(entry);
+    std::cout << "populate gen_tt_ll_bb" << std::endl;
     gen_tt_ll_bb.populate(entry);
+    std::cout << "populate lhe_event" << std::endl;
     lhe_event.populate(entry);
+
+    std::cout << "populates finished" << std::endl;
 
     //printing
     metadata.iterate(printer_normal, metadata.ref_to_indices(), "weight");
@@ -1103,7 +1262,7 @@ int main() {
 
   // and run it!
   // for analyzing only a subset, provide as argument the desired number of events
-  dat.analyze();
+  dat.analyze(100);
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
