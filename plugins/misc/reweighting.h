@@ -110,6 +110,9 @@ struct HTT_Input {
 
       using namespace std::complex_literals;
       //const std::complex<Number2> i_cmplx = 1i;
+      //const std::complex<Number2>{0.0, static_cast<double>(d)};
+      const std::complex i_cmplx = std::complex<Number2>(0., 1.L);
+      //const std::complex<Number2> i_cmplx = static_cast<Number2>(1);
 
       std::complex<Number2> common_factor_for_M_H = 0.;
       Number2 mh_gh_partial = 0.;
@@ -133,17 +136,17 @@ struct HTT_Input {
             }
 
             Number2 NB_real, NB_imag;
-            Number2 auxh = 1.5*(1-beta2Ref)*ytop2;
+            Number2 auxh = 1.5 * (1-beta2Ref) * ytop2;
             if (beta2Ref>0) {
                   Number2 betaRef = sqrt(beta2Ref);
-                  NB_real = auxh*(1-beta2Ref/4*(pow(log((1+betaRef)/(1-betaRef)),2)-pi2));
+                  NB_real = auxh * (1 - beta2Ref / 4 * (pow( log((1+betaRef) / (1-betaRef)), 2) - pi2 ));
                   NB_imag = auxh*(beta2Ref/2*pi*(log((1+betaRef)/(1-betaRef))));
             } else {
-                  NB_real = auxh*(1+beta2Ref*pow(asin(sqrts/2/MT_REF),2));
+                  NB_real = auxh * (1 + beta2Ref * pow(asin(sqrts/2/MT_REF), 2));
                   NB_imag = 0.;
             }
-            std::complex<Number2> NB = NB_real + NB_imag*1i;
-            std::complex<Number2> denomH = sqrts2 - MH2_REF + mh_gh*1i;
+            std::complex<Number2> NB = NB_real + NB_imag * i_cmplx;
+            std::complex<Number2> denomH = sqrts2 - MH2_REF + mh_gh * i_cmplx;
 
             common_factor_for_M_H = NB / denomH;
             common_factor_for_M_H *= pow(sqrts2,1.5)*MT_REF*GF/6.*sqrt(3.)/4./pi;
@@ -179,8 +182,8 @@ struct HTT_Input {
                   PB_real = -4*auxa*pow(asin(sqrts/2/MT_REF),2);
                   PB_imag = 0.;
             }
-            std::complex<Number2> PB = PB_real + PB_imag*1i;
-            std::complex<Number2> denomA = sqrts2 - MA2_REF + ma_ga*1i;
+            std::complex<Number2> PB = PB_real + PB_imag * i_cmplx;
+            std::complex<Number2> denomA = sqrts2 - MA2_REF + ma_ga * i_cmplx;
 
             common_factor_for_M_A = PB / denomA;
             common_factor_for_M_A *= pow(sqrts2,1.5)*MT_REF*GF/6.*sqrt(3.)/4./pi;
@@ -236,6 +239,7 @@ struct HTT_Input {
       }
 
       Number2 c1 = P4gen_d1_trest.CosTheta();
+      //std::cout << "c1: " << c1 << std::endl;
       Number2 c2 = P4gen_d2_trest.CosTheta();
       Number2 s1 = sqrt(1-c1*c1);
       Number2 s2 = sqrt(1-c2*c2);
@@ -245,16 +249,26 @@ struct HTT_Input {
             - beta2Ref*(1-z2)*s1*s2*cos(phi1+phi2)
             -2*(1-beta2Ref)*(1-z2)*s1*s2*cos(phi1)*cos(phi2)
             +2*sqrt(1-beta2Ref)*z1*sqrt(1-z2)*(c1*s2*cos(phi2)+c2*s1*cos(phi1));
+      //std::cout << "os_factor: " << os_factor << std::endl;
       Number2 ss_factor_1 = 1+c1*c2 + s1*s2*cos(phi1-phi2);
+      //std::cout << "ss_factor_1: " << ss_factor_1 << std::endl;
       Number2 ss_factor_beta = beta2 * (1+c1*c2 - s1*s2*cos(phi1-phi2));
-
+      //std::cout << "ss_factor_beta" << ss_factor_beta << std::endl;
       Number2 M2_QCD = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor
                     + common_factor_for_M2_gg_QCD*(1-beta2Ref)*(ss_factor_1+ss_factor_beta);
 
-      Number2 M2 = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor
-                + common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta)
-                + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1
-                + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta;
+      //Number2 M2 = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor
+      //          + common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta)
+      //          + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1
+      //          + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta;i
+      Number2 M2 = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor                                                                                                                           + common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta)
+                  + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1
+                  + 2*common_factor_for_M_gg_ss_interf*mtrefOverE*common_factor_for_M_A.real()*ss_factor_1
+                  + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta;
+      std::cout << "M2_gg_QCD factor: " << common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor << std::endl;
+      std::cout << "M_gg_ss_nointerf factor: " << common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta) << std::endl;
+      std::cout << "M_gg_ss_interf M_A factor: " << std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1 << std::endl;
+      std::cout << "M_gg_ss_interf M_H factor: " << std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta << std::endl;
 
       // Final weight
       Number2 weight = M2 / M2_QCD;
@@ -263,7 +277,8 @@ struct HTT_Input {
             return 0.;
       }
 
-      return weight;
+     // return weight;
+     return weight - 1;
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -316,20 +331,33 @@ Number2 compute_weight(Number1 pTop_pt, Number1 pTop_eta, Number1 pTop_phi, Numb
   httInput.WIDTH_OPTION = 0;
   httInput.YTOP = 1.0;
   httInput.MH = 1100.;
+  //httInput.MH = 2100.;
   httInput.GH = 55.176;
-  httInput.MA = 1100.;
-  httInput.GA = 61.196;
+  //httInput.GH = 100;
+  httInput.MA = 400.;
+  //httInput.MA = 1300.;
+  httInput.GA = 20;
+  //httInput.GA = 100;
+
+  // std::cout << "pTop_pt: " << pTop_pt << ", pTop_eta: " << pTop_eta << ", pTop_phi: " << pTop_phi << ", pTop_m: " << pTop_m << std::endl;
+  // std::cout << "aTop_pt: " << aTop_pt << ", aTop_eta: " << aTop_eta << ", aTop_phi: " << aTop_phi << ", aTop_m: " << aTop_m << std::endl;
+  // std::cout << "pLep_pt: " << pLep_pt << ", pLep_eta: " << pLep_eta << ", pLep_phi: " << pLep_phi << ", pLep_m: " << pLep_m << std::endl;
+  // std::cout << "aLep_pt: " << aLep_pt << ", aLep_eta: " << aLep_eta << ", aLep_phi: " << aLep_phi << ", aLep_m: " << aLep_m << std::endl;
 
   // Kinematics in this event
   httInput.P4gen_t[0].SetPtEtaPhiM(pTop_pt, pTop_eta, pTop_phi, pTop_m);
   httInput.P4gen_t[1].SetPtEtaPhiM(aTop_pt, aTop_eta, aTop_phi, aTop_m);
-  httInput.P4gen_t[0].SetPtEtaPhiM(pLep_pt, pLep_eta, pLep_phi, pLep_m);
-  httInput.P4gen_t[1].SetPtEtaPhiM(aLep_pt, aLep_eta, aLep_phi, aLep_m);
+  httInput.P4gen_d[1].SetPtEtaPhiM(pLep_pt, pLep_eta, pLep_phi, pLep_m);
+  httInput.P4gen_d[0].SetPtEtaPhiM(aLep_pt, aLep_eta, aLep_phi, aLep_m);
  
-  Number2 event_weight = 1.;
-  //if (is_gg) event_weight = weight_ggHtt(httInput);
+  //Number2 event_weight = 1.;
+  Number2 event_weight = weight_ggHtt(httInput);
 
-  printf("Weight=%.3e\n",event_weight);
+  TLorentzVector tops = httInput.P4gen_t[0] + httInput.P4gen_t[1];
+  
+  std::cout << "ttbar mass: " << tops.M() << std::endl;
+  //std::cout << "antitop mass: " << aTop_m << std::endl;
+  //printf("Weight=%.3e\n",event_weight);
   return event_weight;
 
 }
