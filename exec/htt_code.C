@@ -55,7 +55,6 @@ struct HTT_Input {
 
       const double MT_REF = 172.5;
       const double MT2_REF = MT_REF*MT_REF;
-      //Fermi-Konstante
       const double GF = 1.16637876e-5;
       const double pi = TMath::Pi();
       const double pi2 = pi*pi;
