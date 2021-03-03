@@ -16,13 +16,70 @@
 #include "misc/function_util.h"
 #include "misc/numeric_vector.h"
 #include "misc/spin_correlation.h"
-#include "misc/reweighting.h"
+#include "misc/reweighting_juan_code.h"
 
 // things I included
 #include <dirent.h>
 #include <string>
 // this one is to add light weight paticle masses, if it would work
 // #include "./misc/constants.h"
+
+
+// enum to string things
+
+
+
+std::string calc_weight_version_to_str(calc_weight_version version){
+using cwv = calc_weight_version;
+  switch ( version )
+      {
+         case cwv::juan_paper:
+            return "juan_paper";
+         case cwv::juan_code:
+            return "juan_code";
+         case cwv::juan_paper_different_M2:
+            return "juan_paper_different_M2";
+         default:
+            return "undefined_version";
+      }
+}
+
+std::string higgs_type_to_str(higgs_type type){
+using ht = higgs_type;
+  switch ( type )
+      {
+         case ht::scalar:
+            return "scalar";
+         case ht::pseudo_scalar:
+            return "pseudo_scalar";
+         default:
+            return "undefined_higgs_type";
+      }
+}
+
+std::string res_int_to_str(res_int res_int){
+//using ri = res_int;
+  switch ( res_int )
+      {
+         case res_int::resonance:
+            return "resonance";
+         case res_int::interference:
+            return "interference";
+         case res_int::both:
+            return "res_int";
+         default:
+            return "undefined_res_int_type";
+      }
+}
+
+std::string create_filename(std::string custom_praefix, higgs_type higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int res_int, std::string cut){
+  std::string calc_weight_version_str = calc_weight_version_to_str(calc_weight_version);
+  std::string higgs_type_str = higgs_type_to_str(higgs_type);
+  std::string res_int_str = res_int_to_str(res_int);
+  std::string filename = custom_praefix + "_" + higgs_type_str + "_m" + std::to_string(mass) + "_w" + std::to_string(width) + "_" + calc_weight_version_str + "_" + res_int_str + "_" + cut + ".root";
+  return filename;
+}
+
 // 
 // cool things from Ruben to make the add_attribute shorter
  using attr_func_type_ttbar = const std::function<float(float,float,float,float,float,float,float,float)>;
@@ -528,20 +585,37 @@ int main() {
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle, lhe_particle);
+  
+  calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
+  higgs_type higgs_type = higgs_type::pseudo_scalar;
+  res_int res_int = res_int::both;
+  float mass = 400;
+  float width = 20;
 
-
-  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(), 
+  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(calc_weight_version, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
   
-  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(), 
+  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(calc_weight_version, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
-
+  
+//  lhe_event.add_attribute("weight_juan_code_float", calculate_weight<float,float>(calc_weight_version::juan_code, higgs_type), 
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//  
+//  lhe_event.add_attribute("weight_juan_code_double", calculate_weight<float, double>(calc_weight_version::juan_code, higgs_type), 
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//
   // calculate how precise the weights are by comparing double and float precision
   lhe_event.transform_attribute("weight_precision", 
                                    [] (float weight_float, double weight_double) -> double {
@@ -1095,7 +1169,12 @@ int main() {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
 
 
-
+//  Histogram hist_cut_juan_paper;
+//  //hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+//  hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight"), &weight_new =lhe_event.get<float>("weight_juan_paper_float")] () { return (weight[0] * weight_new[0]); });
+//  hist_cut_juan_paper.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
+//  hist_cut_juan_paper.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
+//
 
   // if the unbinned values are needed we can save them as flat trees
   // just like the histogram object we start by instantiating the object
@@ -1221,6 +1300,7 @@ int main() {
 
     if (passllbb) {
       hist_cut.fill();
+//      hist_cut_juan_paper.fill();
       tree_gen.fill();
     }
 
@@ -1249,10 +1329,15 @@ int main() {
   // for analyzing only a subset, provide as argument the desired number of events
   dat.analyze();
 
+
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_no_cut_new_qcd.root");
-  hist_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_cut_new_qcd.root");
+  
+  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "cut");
+  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "no_cut");
+
+  hist_no_cut.save_as(filename_nocut);
+  hist_cut.save_as(filename_cut);
   tree_gen.save();
 
   return 0;
