@@ -265,19 +265,36 @@ struct HTT_Input {
       Number2 s2 = sqrt(1-c2*c2);
       Number2 phi1 = P4gen_d1_trest.Phi();
       Number2 phi2 = vec_4_l_trest.Phi();
-      Number2 os_factor = (1+z_sq+(1-z_sq)*(1-beta_sq_ref))*(1.-c1*c2) + 2*(1-beta_sq_ref)*(1-z_sq)*c1*c2
-            - beta_sq_ref*(1-z_sq)*s1*s2*cos(phi1+phi2)
-            -2*(1-beta_sq_ref)*(1-z_sq)*s1*s2*cos(phi1)*cos(phi2)
-            +2*sqrt(1-beta_sq_ref)*z*sqrt(1-z_sq)*(c1*s2*cos(phi2)+c2*s1*cos(phi1));
+     
+      // os factor deleted one sqrt in last line 
+      Number2 os_factor = (1 + z_sq + (1 - z_sq) * (1 - beta_sq_ref)) * (1. - c1*c2)
+            + 2 * (1 - beta_sq_ref) * (1 - z_sq) * c1 * c2
+            - beta_sq_ref * (1 - z_sq) * s1 * s2 * cos(phi1 + phi2)
+            - 2 * (1 - beta_sq_ref) * (1 - z_sq) * s1 * s2 * cos(phi1) * cos(phi2)
+            + 2 * sqrt(1 - beta_sq_ref) * z * (1-z_sq) * (c1 * s2 * cos(phi2) + c2 * s1 * cos(phi1));
+
+
+      // old os factor
+      //Number2 os_factor = (1+z_sq+(1-z_sq)*(1-beta_sq_ref))*(1.-c1*c2) + 2*(1-beta_sq_ref)*(1-z_sq)*c1*c2
+      //      - beta_sq_ref*(1-z_sq)*s1*s2*cos(phi1+phi2)
+      //      -2*(1-beta_sq_ref)*(1-z_sq)*s1*s2*cos(phi1)*cos(phi2)
+      //      +2*sqrt(1-beta_sq_ref)*z*sqrt(1-z_sq)*(c1*s2*cos(phi2)+c2*s1*cos(phi1));
       //std::cout << "os_factor: " << os_factor << std::endl;
       Number2 ss_factor_1 = 1+c1*c2 + s1*s2*cos(phi1-phi2);
       //std::cout << "ss_factor_1: " << ss_factor_1 << std::endl;
       Number2 ss_factor_beta = beta_sq * (1+c1*c2 - s1*s2*cos(phi1-phi2));
-      //std::cout << "ss_factor_beta" << ss_factor_beta << std::endl;
-      Number2 M2_QCD = common_factor_for_M2_gg_QCD*beta_sq*(1-z_sq)*os_factor
-                    + common_factor_for_M2_gg_QCD*(1-beta_sq_ref)*(ss_factor_1+ss_factor_beta);
-
+      
       Number2 additional_factor_for_nointerf = 8 * pow(m_t, 2) * pi * alpha_s * beta / pow(s, 2);
+      
+      //std::cout << "ss_factor_beta" << ss_factor_beta << std::endl;
+      //Number2 M2_QCD = common_factor_for_M2_gg_QCD*beta_sq*(1-z_sq)*os_factor
+      //              + common_factor_for_M2_gg_QCD*(1-beta_sq_ref)*(ss_factor_1+ss_factor_beta);
+      
+      // just to try it out, new M for QCD, looking at the other changes I made 
+      // first part like the qcd part in BSM term and second part as it is, but (1-beta^2) becomes the same factor as in the no interference part
+      Number2 M2_QCD = common_factor_for_M2_gg_QCD * pow(alpha_s, 2) * pow(beta, 3) / (8 * pi * s) * (1 - z_sq) * os_factor
+                    + common_factor_for_M2_gg_QCD * additional_factor_for_no_interf * (ss_factor_1 + ss_factor_beta);
+
       Number2 beta_z_factor = 1 - beta_sq_ref * z_sq;
       Number2 beta_z_factor_sq = beta_z_factor * beta_z_factor;
       Number2 factor_interference = 4 / 3 * pow(m_t, 2) * pow(pi, 3) * pow(alpha_s, 2) / (pow(s, 2) * beta_z_factor_sq);
@@ -294,7 +311,7 @@ struct HTT_Input {
           factor_interference_scalar = pow(std::norm(std::complex<Number2>(1., 0.) - ( factor_in_norm_interference * NB / denomH )), 2);
       }
       // terms to add for the BSM cross section
-      Number2 qcd_term = common_factor_for_M2_gg_QCD*beta_sq * (1-z_sq) * os_factor;
+      Number2 qcd_term = pow(alpha_s, 2) * pow(beta, 3) / (8 * s * pi) * common_factor_for_M2_gg_QCD * (1 - z_sq) * os_factor;
       Number2 no_interference_term = common_factor_for_M2_gg_ss_nointerf * additional_factor_for_nointerf * (ss_factor_1 + ss_factor_beta);
 
       // if beta_sq_ref < 0, calculate the old way, because there's no decription of what to do in that case in the paper

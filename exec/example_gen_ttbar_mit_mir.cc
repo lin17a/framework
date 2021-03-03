@@ -1251,8 +1251,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_no_cut.root");
-  hist_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_cut.root");
+  hist_no_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_no_cut_new_qcd.root");
+  hist_cut.save_as("hist_ttbarlo_reweighting_pseudo_m_400_width_20_cut_new_qcd.root");
   tree_gen.save();
 
   return 0;

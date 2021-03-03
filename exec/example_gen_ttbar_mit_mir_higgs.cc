@@ -75,7 +75,7 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
 //  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/");
+  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m400_w20_00_RES_PSEUDO/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -702,27 +702,31 @@ int main() {
     // but to highlight some additional features we will instead do it through the gen_particle collections instead
     // begin by selecting the daughters among all the gen particles using a generic filter method
     // which needs a function that evaluates to true or false based on a list of attributes
-    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
-        // not lepton or bottom, reject
-        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
-          return false;
+    
 
-        if (pt > 20.f and std::abs(eta) < 2.4f)
-          return true;
-        else
-          return false;
-      }, "dileptonic_ttbar", "pt", "eta");
 
-    // recall that filter methods return a list of indices
-    // to overwrite the indices list of the group, we use the update_indices method
-    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
 
-    // if all four objects pass the cut, then gen_particle will have 4 elements left
-    // fill also our tree at this point
-    if (gen_particle.n_elements() == 4) {
-      hist_cut.fill();
-      tree_gen.fill();
-    }
+//    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
+//        // not lepton or bottom, reject
+//        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
+//          return false;
+//
+//        if (pt > 20.f and std::abs(eta) < 2.4f)
+//          return true;
+//        else
+//          return false;
+//      }, "dileptonic_ttbar", "pt", "eta");
+//
+//    // recall that filter methods return a list of indices
+//    // to overwrite the indices list of the group, we use the update_indices method
+//    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
+//
+//    // if all four objects pass the cut, then gen_particle will have 4 elements left
+//    // fill also our tree at this point
+//    if (gen_particle.n_elements() == 4) {
+//      hist_cut.fill();
+//      tree_gen.fill();
+//    }
 
     /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
     // by stacking multiple filter_XXX calls
@@ -739,6 +743,24 @@ int main() {
     if (gen_tt_ll_bb.n_elements() == 1)
       hist_cut.fill();
     */
+
+
+    auto passll = gen_tt_ll_bb.filter_greater("lepton_pt", 20.f, 
+                                              gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
+                                                                     gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
+                                                                                                 gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
+    auto passllbb = gen_tt_ll_bb.filter_greater("bottom_pt", 20.f, 
+                                               gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
+                                                                      gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
+                                                                                                  gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
+                                                                                                                         passll)))).size();
+
+    if (passllbb) {
+      hist_cut.fill();
+      tree_gen.fill();
+    }
+
+
   };
 
   // tell the dataset instance about our event analyzer function
@@ -750,8 +772,8 @@ int main() {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_RES_PSEUDO_spin_no_cut.root");
-  hist_cut.save_as("hist_RES_PSEUDO_spin_cut.root");
+  hist_no_cut.save_as("hist_m400_w20_00_RES_PSEUDO_no_cut.root");
+  hist_cut.save_as("hist_m400_w20_00_RES_PSEUDO_cut.root");
   tree_gen.save();
 
   return 0;
