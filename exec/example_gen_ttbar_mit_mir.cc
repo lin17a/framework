@@ -44,8 +44,8 @@ using cwv = calc_weight_version;
       }
 }
 
-std::string higgs_type_to_str(higgs_type type){
-using ht = higgs_type;
+std::string higgs_type_to_str(higgs_type_t type){
+using ht = higgs_type_t;
   switch ( type )
       {
          case ht::scalar:
@@ -57,22 +57,22 @@ using ht = higgs_type;
       }
 }
 
-std::string res_int_to_str(res_int res_int){
+std::string res_int_to_str(res_int_t res_int){
 //using ri = res_int;
   switch ( res_int )
       {
-         case res_int::resonance:
+         case res_int_t::resonance:
             return "resonance";
-         case res_int::interference:
+         case res_int_t::interference:
             return "interference";
-         case res_int::both:
+         case res_int_t::both:
             return "res_int";
          default:
             return "undefined_res_int_type";
       }
 }
 
-std::string create_filename(std::string custom_praefix, higgs_type higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int res_int, std::string cut){
+std::string create_filename(std::string custom_praefix, higgs_type_t higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int_t res_int, std::string cut){
   std::string calc_weight_version_str = calc_weight_version_to_str(calc_weight_version);
   std::string higgs_type_str = higgs_type_to_str(higgs_type);
   std::string res_int_str = res_int_to_str(res_int);
@@ -179,11 +179,59 @@ float llbar_dphi(float pt1, float eta1, float phi1, float mass1,
 auto printer_normal = [] (auto &p) {std::cout << p << "\n";};
 auto printer_reweighted = [] (auto &p) {std::cout << "reweighted: " << p << "\n";};
 
+//int main(int argc, char **argv) {
 int main() {
   // the core part of the framework are all within this namespace
   // note: an example of CL arguments are provided in bparking/bpark_tt3l.cc file
   // which is not yet integrated into the example
   using namespace Framework;
+
+//  int aflag = 0;
+//  int bflag = 0;
+//  char *cvalue = NULL;
+//  int index;
+//  int c;
+//
+//  opterr = 0;
+//  char *mass = NULL;
+//
+//  while ((c = getopt (argc, argv, "abc:")) != -1)
+//    switch (c)
+//      {
+//      case 'm':
+//        mass = optarg;
+//        break;
+//      case 'g':
+//        gamma = optarg;
+//        break;
+//      case 'v':
+//        calc_weight_version = optarg;
+//        break;
+//      case '':
+//        res_int = optarg;
+//        break;
+//      case 'h':
+//        higgs_type = optarg;
+//      case '?':
+//        if (optopt == 'c')
+//          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+//        else if (isprint (optopt))
+//          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+//        else
+//          fprintf (stderr,
+//                   "Unknown option character `\\x%x'.\n",
+//                   optopt);
+//        return 1;
+//      default:
+//        abort ();
+//      }
+
+
+
+
+
+
+
 
   // first and foremost, we specify the input files we will be looking at
   // this is done by constructing a dataset object
@@ -586,9 +634,9 @@ int main() {
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle, lhe_particle);
   
-  calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
-  higgs_type higgs_type = higgs_type::pseudo_scalar;
-  res_int res_int = res_int::both;
+  calc_weight_version calc_weight_version = calc_weight_version::juan_code;
+  higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
+  res_int_t res_int = res_int_t::both;
   float mass = 400;
   float width = 20;
 
@@ -1333,8 +1381,8 @@ int main() {
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
   
-  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "cut");
-  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "no_cut");
+  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "cut_after_reordering");
+  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "no_cut_after_reordering");
 
   hist_no_cut.save_as(filename_nocut);
   hist_cut.save_as(filename_cut);

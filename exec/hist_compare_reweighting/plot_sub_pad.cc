@@ -60,9 +60,9 @@
   };
 
   // add all root files
-  TFile *f1 = TFile::Open( "./hist_m400_w20_00_RES_PSEUDO_cut.root" );
+  TFile *f1 = TFile::Open( "./hist_ttbarlo_reweighting_pseudo_scalar_m400.000000_w20.000000_juan_code_resonance_cut.root");
   //TFile *f2 = TFile::Open( "./hist_m400_w20_00_INT_PSEUDO_cut.root" );
-  TFile *f3 = TFile::Open( "./hist_ttbarlo_reweighting_pseudo_m_400_width_20_cut_new_qcd.root" );
+  TFile *f3 = TFile::Open( "./hist_ttbarlo_reweighting_pseudo_scalar_m400.000000_w20.000000_juan_code_interference_cut.root" );
 
   TIter iter1(f1->GetListOfKeys());
   TKey *key1;
@@ -83,9 +83,9 @@
         TH1F *h3 = (TH1F *) f3->Get( hist_name.c_str());   
 
         // defining histogram structs with a histogram, color and name to hand it all together to the SetUp function
-        histogram hist1 = {h1, "res pseudo", kGreen-3};
+        histogram hist1 = {h1, "reweighted res pseudo", kGreen-3};
       //  histogram hist2 = {h2, "int pseudo", kGreen+3};
-        histogram hist3 = {h3, "reweighted pseudo", kBlue+2};
+        histogram hist3 = {h3, "reweighted int pseudo", kBlue+2};
         
         // add a new histogram containing the sum of ttbar and the pseudo scalar higgs histograms
         TH1F *h_sum_res_int_pseudo = (TH1F*) h1->Clone();
@@ -120,7 +120,7 @@
         h1->GetXaxis()->SetTitle(x_title.c_str());
         h1->GetYaxis()->SetTitle("number of events");
  
-        h1->SetNameTitle(hist_name.c_str(), "");
+        h1->SetNameTitle(hist_name.c_str(), "pseudo scalar, compare resonance interference, m=400, w=20");
         
         TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
         can->SetLogy();
@@ -146,7 +146,7 @@
         legend->Draw();
  
         // save with correct name
-        std::string filename = std::string(hist_name) + std::string("_m400_w20_pseudo_generated_res_vs_reweighted_juan_new_qcd.pdf");
+        std::string filename = std::string(hist_name) + std::string("_m400_w20_pseudo_reweighted_res_vs_reweighted_int_juan_code.pdf");
         can->SaveAs( filename.c_str() ); 
      }
         
