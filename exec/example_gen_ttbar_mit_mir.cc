@@ -21,6 +21,7 @@
 // things I included
 #include <dirent.h>
 #include <string>
+#include <sstream>
 // this one is to add light weight paticle masses, if it would work
 // #include "./misc/constants.h"
 
@@ -179,53 +180,198 @@ float llbar_dphi(float pt1, float eta1, float phi1, float mass1,
 auto printer_normal = [] (auto &p) {std::cout << p << "\n";};
 auto printer_reweighted = [] (auto &p) {std::cout << "reweighted: " << p << "\n";};
 
-//int main(int argc, char **argv) {
-int main() {
+int main(int argc, char **argv) {
+//int main() {
   // the core part of the framework are all within this namespace
   // note: an example of CL arguments are provided in bparking/bpark_tt3l.cc file
   // which is not yet integrated into the example
   using namespace Framework;
+  int index;
+  int c;
 
-//  int aflag = 0;
-//  int bflag = 0;
-//  char *cvalue = NULL;
-//  int index;
-//  int c;
-//
+  opterr = 0;
+  float mass_float;
+  float width_float;
+ // higgs_type type;
+  std::istringstream ss;
+  int calc_resonance = 0;
+  int calc_interference = 0;
+  int pseudo_scalar = 0;
+  int scalar = 0;
+  calc_weight_version calc_weight_variant;
+
+  while ((c = getopt (argc, argv, "m:w:ripsv:")) != -1){
+    std::string arg = "";
+    if (optarg) arg = std::string(optarg);
+    switch (c)
+      {
+      case 'm':{
+        std::string mass_str;
+        std::cout << "m!" << std::endl;
+        mass_str = arg;
+        ss.clear();
+        ss.str(mass_str);
+        ss >> mass_float;
+        if (ss && ss.eof()){
+            std::cout << "mass: " << mass_float << std::endl;
+        } 
+        else {
+            std::cerr << "mass must be a number." << std::endl;
+            return 1;
+        }
+        break;}
+      case 'w':{
+        std::string width_str;
+        width_str = arg;
+        ss.clear();
+        ss.str(width_str);
+        ss >> width_float;
+        if (ss && ss.eof()){
+           std::cout << "width: " << width_float << std::endl;
+        }
+        else {
+           std::cerr << "width must be a number." << std::endl;
+           return 1;}
+        break;}
+      case 'r':
+        calc_resonance = 1;
+        std::cout << "calculating resonance" << std::endl;
+        break;
+      case 'i':
+        calc_interference = 1;
+        std::cout << "calculating interference" << std::endl;
+        break;
+      case 's':
+        scalar = 1;
+        std::cout << "higgs type: scalar" << std::endl; 
+        break;
+      case 'p':
+        pseudo_scalar = 1;
+        std::cout << "higgs type: pseudo scalar" << std::endl; 
+        break;
+      case 'v':{
+        std::string variant_str = arg;
+        if (variant_str ==  "juan_code"){
+            calc_weight_variant = calc_weight_version::juan_code;
+            std::cout << "Using calculation variant juan_code" << std::endl;
+        }
+        else if (variant_str == "juan_paper") {
+            calc_weight_variant = calc_weight_version::juan_paper;
+            std::cout << "Using calculation variant juan_paper" << std::endl;
+        }
+        else {
+            std::cerr << "The calculation variant must be one of the following: juan_code or  juan_paper." << std::endl;
+        }
+        break;}
+      case '?':
+        if (optopt == 'c')
+          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+        else if (isprint (optopt))
+          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+        else
+          fprintf (stderr,
+                   "Unknown option character `\\x%x'.\n",
+                   optopt);
+        return 1;
+      default:
+        abort ();
+      }
+    }
+  if (!mass_float){
+    std::cerr << "You have to specify the the mass of the higgs (-m <mass in GeV>)." << std::endl;
+  }
+  if (!width_float){
+    std::cerr << "You have to specify the the width of the higgs (-w <width>)." << std::endl;
+  }
+  
+  if (calc_resonance + calc_interference == 0){
+    std::cerr << "You must choose either resonance (-r) and/or interference (-i)." << std::endl;
+    return 0;
+  } 
+  if (scalar + pseudo_scalar != 1){
+    std::cerr << "You must choose either scalar (-s) or pseudo scalar (-p)." << std::endl;
+    return 0;
+  } 
+
+  
+  for (index = optind; index < argc; index++)
+    printf ("Non-option argument %s\n", argv[index]);
+  return 0;
+
 //  opterr = 0;
-//  char *mass = NULL;
+//  int c;
+//  int index;
+//  //float mass_float = 0;
+//  //float width_float = 0;
+//  //std::istringstream ss;
 //
-//  while ((c = getopt (argc, argv, "abc:")) != -1)
+//  //char *mass_str = NULL;
+//  //char *width_str = NULL;
+//  int aflag, bflag;
+//  while ((c = getopt (argc, argv, "aw:")) != -1)
 //    switch (c)
 //      {
-//      case 'm':
-//        mass = optarg;
+//        case 'a':
+//          aflag = 1;
+//          std::cout << aflag << std::endl;
+//          break;
+//        case 'w':
+//          bflag = 1;
+//          std::cout << bflag << std::endl;
+//          break;
+//
+//        case 'm':
+//        std::cout << "m!" << std::endl;
+//        //mass_str = optarg;
+//        //ss.clear();
+//        //ss.str(mass_str);
+//        //ss >> mass_float;
+//        //if (ss && ss.eof()){
+//        //    std::cout << "mass: " << mass_float << std::endl;
+//        //} 
+//        //else {
+//        //    std::cerr << "mass must be a number." << std::endl;
+//        //    return 1;
+//        //}
 //        break;
-//      case 'g':
-//        gamma = optarg;
-//        break;
-//      case 'v':
-//        calc_weight_version = optarg;
-//        break;
-//      case '':
-//        res_int = optarg;
-//        break;
-//      case 'h':
-//        higgs_type = optarg;
-//      case '?':
-//        if (optopt == 'c')
-//          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-//        else if (isprint (optopt))
-//          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-//        else
-//          fprintf (stderr,
-//                   "Unknown option character `\\x%x'.\n",
-//                   optopt);
-//        return 1;
-//      default:
-//        abort ();
+//      case 'f':
+//         std::cout << "f!" << std::endl;
+//     //    width_str = optarg;
+//     //    ss.clear();
+//     //    ss.str(width_str);
+//     //    ss >> width_float;
+//     //    if (ss && ss.eof()){
+//     //       std::cout << "width: " << width_float << std::endl;
+//     //    }
+//     //    else {
+//     //       std::cerr << "width must be a number." << std::endl;
+//     //       return 1;
+//     //    }
+//         break;
+//      //case 'v':
+//      //  calc_weight_version = optarg;
+//      //  break;
+//      //case '':
+//      //  res_int = optarg;
+//      //  break;
+//      //case 'h':
+//      //  higgs_type = optarg;
+//        case '?':
+//          if (optopt == 'c')
+//            fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+//          else if (isprint (optopt))
+//            fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+//          else
+//            fprintf (stderr,
+//                     "Unknown option character `\\x%x'.\n",
+//                     optopt);
+//          return 1;
+//        default:
+//          abort ();
 //      }
-
+//
+//  for (index = optind; index < argc; index++)
+//     printf ("Non-option argument %s\n", argv[index]);
 
 
 
@@ -634,19 +780,19 @@ int main() {
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle, lhe_particle);
   
-  calc_weight_version calc_weight_version = calc_weight_version::juan_code;
+  calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
   higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
   res_int_t res_int = res_int_t::both;
   float mass = 400;
   float width = 20;
 
-  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(calc_weight_version, higgs_type, mass, width, res_int), 
+  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(calc_weight_variant, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
   
-  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(calc_weight_version, higgs_type, mass, width, res_int), 
+  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(calc_weight_variant, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
