@@ -190,15 +190,16 @@ int main(int argc, char **argv) {
   int c;
 
   opterr = 0;
-  float mass_float;
-  float width_float;
- // higgs_type type;
+  float mass;
+  float width;
+  higgs_type_t higgs_type = higgs_type_t::undefined;
+  res_int_t res_int = res_int_t::undefined;
   std::istringstream ss;
   int calc_resonance = 0;
   int calc_interference = 0;
   int pseudo_scalar = 0;
   int scalar = 0;
-  calc_weight_version calc_weight_variant;
+  calc_weight_version calc_weight_variant = calc_weight_version::undefined;
 
   while ((c = getopt (argc, argv, "m:w:ripsv:")) != -1){
     std::string arg = "";
@@ -207,13 +208,12 @@ int main(int argc, char **argv) {
       {
       case 'm':{
         std::string mass_str;
-        std::cout << "m!" << std::endl;
         mass_str = arg;
         ss.clear();
         ss.str(mass_str);
-        ss >> mass_float;
+        ss >> mass;
         if (ss && ss.eof()){
-            std::cout << "mass: " << mass_float << std::endl;
+            std::cout << "mass: " << mass << std::endl;
         } 
         else {
             std::cerr << "mass must be a number." << std::endl;
@@ -225,9 +225,9 @@ int main(int argc, char **argv) {
         width_str = arg;
         ss.clear();
         ss.str(width_str);
-        ss >> width_float;
+        ss >> width;
         if (ss && ss.eof()){
-           std::cout << "width: " << width_float << std::endl;
+           std::cout << "width: " << width << std::endl;
         }
         else {
            std::cerr << "width must be a number." << std::endl;
@@ -235,18 +235,22 @@ int main(int argc, char **argv) {
         break;}
       case 'r':
         calc_resonance = 1;
+        res_int = res_int_t::resonance;
         std::cout << "calculating resonance" << std::endl;
         break;
       case 'i':
         calc_interference = 1;
+        res_int = res_int_t::interference;
         std::cout << "calculating interference" << std::endl;
         break;
       case 's':
         scalar = 1;
+        higgs_type = higgs_type_t::scalar;
         std::cout << "higgs type: scalar" << std::endl; 
         break;
       case 'p':
         pseudo_scalar = 1;
+        higgs_type = higgs_type_t::pseudo_scalar;
         std::cout << "higgs type: pseudo scalar" << std::endl; 
         break;
       case 'v':{
@@ -261,6 +265,7 @@ int main(int argc, char **argv) {
         }
         else {
             std::cerr << "The calculation variant must be one of the following: juan_code or  juan_paper." << std::endl;
+            return 1;
         }
         break;}
       case '?':
@@ -277,10 +282,10 @@ int main(int argc, char **argv) {
         abort ();
       }
     }
-  if (!mass_float){
+  if (!mass){
     std::cerr << "You have to specify the the mass of the higgs (-m <mass in GeV>)." << std::endl;
   }
-  if (!width_float){
+  if (!width){
     std::cerr << "You have to specify the the width of the higgs (-w <width>)." << std::endl;
   }
   
@@ -288,92 +293,21 @@ int main(int argc, char **argv) {
     std::cerr << "You must choose either resonance (-r) and/or interference (-i)." << std::endl;
     return 0;
   } 
+  else if (calc_resonance + calc_interference == 2){
+    res_int = res_int_t::both;
+  }
   if (scalar + pseudo_scalar != 1){
     std::cerr << "You must choose either scalar (-s) or pseudo scalar (-p)." << std::endl;
+    return 0;
+  }
+  if (calc_weight_variant == calc_weight_version::undefined){
+    std::cerr << "You have to specify a calculation method for reweighting." << std::endl;
     return 0;
   } 
 
   
   for (index = optind; index < argc; index++)
     printf ("Non-option argument %s\n", argv[index]);
-  return 0;
-
-//  opterr = 0;
-//  int c;
-//  int index;
-//  //float mass_float = 0;
-//  //float width_float = 0;
-//  //std::istringstream ss;
-//
-//  //char *mass_str = NULL;
-//  //char *width_str = NULL;
-//  int aflag, bflag;
-//  while ((c = getopt (argc, argv, "aw:")) != -1)
-//    switch (c)
-//      {
-//        case 'a':
-//          aflag = 1;
-//          std::cout << aflag << std::endl;
-//          break;
-//        case 'w':
-//          bflag = 1;
-//          std::cout << bflag << std::endl;
-//          break;
-//
-//        case 'm':
-//        std::cout << "m!" << std::endl;
-//        //mass_str = optarg;
-//        //ss.clear();
-//        //ss.str(mass_str);
-//        //ss >> mass_float;
-//        //if (ss && ss.eof()){
-//        //    std::cout << "mass: " << mass_float << std::endl;
-//        //} 
-//        //else {
-//        //    std::cerr << "mass must be a number." << std::endl;
-//        //    return 1;
-//        //}
-//        break;
-//      case 'f':
-//         std::cout << "f!" << std::endl;
-//     //    width_str = optarg;
-//     //    ss.clear();
-//     //    ss.str(width_str);
-//     //    ss >> width_float;
-//     //    if (ss && ss.eof()){
-//     //       std::cout << "width: " << width_float << std::endl;
-//     //    }
-//     //    else {
-//     //       std::cerr << "width must be a number." << std::endl;
-//     //       return 1;
-//     //    }
-//         break;
-//      //case 'v':
-//      //  calc_weight_version = optarg;
-//      //  break;
-//      //case '':
-//      //  res_int = optarg;
-//      //  break;
-//      //case 'h':
-//      //  higgs_type = optarg;
-//        case '?':
-//          if (optopt == 'c')
-//            fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-//          else if (isprint (optopt))
-//            fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-//          else
-//            fprintf (stderr,
-//                     "Unknown option character `\\x%x'.\n",
-//                     optopt);
-//          return 1;
-//        default:
-//          abort ();
-//      }
-//
-//  for (index = optind; index < argc; index++)
-//     printf ("Non-option argument %s\n", argv[index]);
-
-
 
 
 
@@ -780,11 +714,11 @@ int main(int argc, char **argv) {
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle, lhe_particle);
   
-  calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
-  higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
-  res_int_t res_int = res_int_t::both;
-  float mass = 400;
-  float width = 20;
+  //calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
+  //higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
+  //res_int_t res_int = res_int_t::both;
+  //float mass = 400;
+  //float width = 20;
 
   lhe_event.add_attribute("weight_float", calculate_weight<float,float>(calc_weight_variant, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
@@ -1527,8 +1461,8 @@ int main(int argc, char **argv) {
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
   
-  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "cut_after_reordering");
-  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_version, res_int, "no_cut_after_reordering");
+  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering");
+  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering");
 
   hist_no_cut.save_as(filename_nocut);
   hist_cut.save_as(filename_cut);
