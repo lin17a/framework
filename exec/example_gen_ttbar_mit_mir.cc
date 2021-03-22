@@ -16,12 +16,13 @@
 #include "misc/function_util.h"
 #include "misc/numeric_vector.h"
 #include "misc/spin_correlation.h"
-#include "misc/reweighting_juan_code.h"
+#include "misc/reweighting_new.h"
 
 // things I included
 #include <dirent.h>
 #include <string>
 #include <sstream>
+#include <iomanip>
 // this one is to add light weight paticle masses, if it would work
 // #include "./misc/constants.h"
 
@@ -73,12 +74,18 @@ std::string res_int_to_str(res_int_t res_int){
       }
 }
 
-std::string create_filename(std::string custom_praefix, higgs_type_t higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int_t res_int, std::string cut){
-  std::string calc_weight_version_str = calc_weight_version_to_str(calc_weight_version);
-  std::string higgs_type_str = higgs_type_to_str(higgs_type);
-  std::string res_int_str = res_int_to_str(res_int);
-  std::string filename = custom_praefix + "_" + higgs_type_str + "_m" + std::to_string(mass) + "_w" + std::to_string(width) + "_" + calc_weight_version_str + "_" + res_int_str + "_" + cut + ".root";
-  return filename;
+std::string create_filename(std::string custom_prefix, higgs_type_t higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int_t res_int, std::string cut){
+ 
+    //std::string folder = 
+
+    std::string calc_weight_version_str = calc_weight_version_to_str(calc_weight_version);
+    std::string higgs_type_str = higgs_type_to_str(higgs_type);
+    std::string res_int_str = res_int_to_str(res_int);
+  
+    std::stringstream filename;
+    filename << custom_prefix << "_" << higgs_type_str << "_m" << std::fixed << std::setprecision(0) << mass << "_w" << width << "_" << calc_weight_version_str << "_" << res_int_str << "_" << cut << ".root";
+    std::cout << "filename: " << filename.str() << std::endl;
+    return filename.str();
 }
 
 // 
@@ -1089,6 +1096,7 @@ int main(int argc, char **argv) {
   };
 
   spin_add_attribute("cHel", spin_correlation<>("cHel"));
+  spin_add_attribute("cHel", spin_correlation<>("cHel"));
   spin_add_attribute("cLab", spin_correlation<>("cLab"));
   spin_add_attribute("ckk", spin_correlation<>("ckk"));
   spin_add_attribute("crr", spin_correlation<>("crr"));
@@ -1100,6 +1108,133 @@ int main(int argc, char **argv) {
   spin_add_attribute("phi1", spin_correlation<>("phi1"));
   spin_add_attribute("cpTTT", spin_correlation<>("cpTTT"));
   spin_add_attribute("cpTP", spin_correlation<>("cpTP"));
+  
+  spin_add_attribute("dPhi", spin_correlation<>("dPhi"));
+  spin_add_attribute("dEta", spin_correlation<>("dEta"));
+
+  spin_add_attribute("kdx", spin_correlation<>("kdx"));
+  spin_add_attribute("kdy", spin_correlation<>("kdy"));
+  spin_add_attribute("kdz", spin_correlation<>("kdz"));
+
+  spin_add_attribute("rdx", spin_correlation<>("rdx"));
+  spin_add_attribute("rdy", spin_correlation<>("rdy"));
+  spin_add_attribute("rdz", spin_correlation<>("rdz"));
+
+  spin_add_attribute("ndx", spin_correlation<>("ndx"));
+  spin_add_attribute("ndy", spin_correlation<>("ndy"));
+  spin_add_attribute("ndz", spin_correlation<>("ndz"));
+
+  spin_add_attribute("b1k", spin_correlation<>("b1k"));
+  spin_add_attribute("b2k", spin_correlation<>("b2k"));
+
+  spin_add_attribute("b1j", spin_correlation<>("b1j"));
+  spin_add_attribute("b2j", spin_correlation<>("b2j"));
+
+  spin_add_attribute("b1r", spin_correlation<>("b1r"));
+  spin_add_attribute("b2r", spin_correlation<>("b2r"));
+
+  spin_add_attribute("b1q", spin_correlation<>("b1q"));
+  spin_add_attribute("b2q", spin_correlation<>("b2q"));
+
+  spin_add_attribute("b1n", spin_correlation<>("b1n"));
+  spin_add_attribute("b2n", spin_correlation<>("b2n"));
+
+  spin_add_attribute("b1x", spin_correlation<>("b1x"));
+  spin_add_attribute("b2x", spin_correlation<>("b2x"));
+
+  spin_add_attribute("b1y", spin_correlation<>("b1y"));
+  spin_add_attribute("b2y", spin_correlation<>("b2y"));
+
+  spin_add_attribute("b1z", spin_correlation<>("b1z"));
+  spin_add_attribute("b2z", spin_correlation<>("b2z"));
+
+  spin_add_attribute("bPkk", spin_correlation<>("bPkk"));
+  spin_add_attribute("bMkk", spin_correlation<>("bMkk"));
+
+  spin_add_attribute("bPjj", spin_correlation<>("bPjj"));
+  spin_add_attribute("bMjj", spin_correlation<>("bMjj"));
+
+  spin_add_attribute("bPrr", spin_correlation<>("bPrr"));
+  spin_add_attribute("bMrr", spin_correlation<>("bMrr"));
+
+  spin_add_attribute("bPqq", spin_correlation<>("bPqq"));
+  spin_add_attribute("bMqq", spin_correlation<>("bMqq"));
+
+  spin_add_attribute("bPnn", spin_correlation<>("bPnn"));
+  spin_add_attribute("bMnn", spin_correlation<>("bMnn"));
+
+  spin_add_attribute("bPxx", spin_correlation<>("bPxx"));
+  spin_add_attribute("bMxx", spin_correlation<>("bMxx"));
+
+  spin_add_attribute("bPyy", spin_correlation<>("bPyy"));
+  spin_add_attribute("bMyy", spin_correlation<>("bMyy"));
+
+  spin_add_attribute("bPzz", spin_correlation<>("bPzz"));
+  spin_add_attribute("bMzz", spin_correlation<>("bMzz"));
+
+  spin_add_attribute("crk", spin_correlation<>("crk"));
+  spin_add_attribute("ckr", spin_correlation<>("ckr"));
+
+  spin_add_attribute("cnr", spin_correlation<>("cnr"));
+  spin_add_attribute("crn", spin_correlation<>("crn"));
+
+  spin_add_attribute("cnk", spin_correlation<>("cnk"));
+  spin_add_attribute("ckn", spin_correlation<>("ckn"));
+
+  spin_add_attribute("cPrk", spin_correlation<>("cPrk"));
+  spin_add_attribute("cMrk", spin_correlation<>("cMrk"));
+
+  spin_add_attribute("cPnr", spin_correlation<>("cPnr"));
+  spin_add_attribute("cMnr", spin_correlation<>("cMnr"));
+
+  spin_add_attribute("cPnk", spin_correlation<>("cPnk"));
+  spin_add_attribute("cMnk", spin_correlation<>("cMnk"));
+
+  spin_add_attribute("cxx", spin_correlation<>("cxx"));
+  spin_add_attribute("cyy", spin_correlation<>("cyy"));
+  spin_add_attribute("czz", spin_correlation<>("czz"));
+
+  spin_add_attribute("cyx", spin_correlation<>("cyx"));
+  spin_add_attribute("cxy", spin_correlation<>("cxy"));
+
+  spin_add_attribute("czy", spin_correlation<>("czy"));
+  spin_add_attribute("cyz", spin_correlation<>("cyz"));
+
+  spin_add_attribute("czx", spin_correlation<>("czx"));
+  spin_add_attribute("cxz", spin_correlation<>("cxz"));
+
+  spin_add_attribute("cPyx", spin_correlation<>("cPyx"));
+  spin_add_attribute("cMyx", spin_correlation<>("cMyx"));
+
+  spin_add_attribute("cPzy", spin_correlation<>("cPzy"));
+  spin_add_attribute("cMzy", spin_correlation<>("cMzy"));
+
+  spin_add_attribute("cPzx", spin_correlation<>("cPzx"));
+  spin_add_attribute("cMzx", spin_correlation<>("cMzx"));
+
+  spin_add_attribute("crkP", spin_correlation<>("crkP"));
+  spin_add_attribute("cnrP", spin_correlation<>("cnrP"));
+  spin_add_attribute("cnkP", spin_correlation<>("cnkP"));
+
+  spin_add_attribute("crkM", spin_correlation<>("crkM"));
+  spin_add_attribute("cnrM", spin_correlation<>("cnrM"));
+  spin_add_attribute("cnkM", spin_correlation<>("cnkM"));
+
+  spin_add_attribute("cXxx", spin_correlation<>("cXxx"));
+  spin_add_attribute("cYyy", spin_correlation<>("cYyy"));
+  spin_add_attribute("cZzz", spin_correlation<>("cZzz"));
+
+  spin_add_attribute("cyxP", spin_correlation<>("cyxP"));
+  spin_add_attribute("czyP", spin_correlation<>("czyP"));
+  spin_add_attribute("czxP", spin_correlation<>("czxP"));
+
+  spin_add_attribute("cyxM", spin_correlation<>("cyxM"));
+  spin_add_attribute("czyM", spin_correlation<>("czyM"));
+  spin_add_attribute("czxM", spin_correlation<>("czxM"));
+
+  spin_add_attribute("kNorm", spin_correlation<>("kNorm"));
+  spin_add_attribute("rNorm", spin_correlation<>("rNorm"));
+  spin_add_attribute("nNorm", spin_correlation<>("nNorm"));
 
   std::cout << "after all add attributes" << std::endl;
 
@@ -1216,6 +1351,133 @@ int main(int argc, char **argv) {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT", "", 100, -1.f, 1.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
   
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "dPhi"), "spin_dPhi", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "dEta"), "spin_dEta", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdx"), "spin_kdx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdy"), "spin_kdy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdz"), "spin_kdz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdx"), "spin_rdx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdy"), "spin_rdy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdz"), "spin_rdz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndx"), "spin_ndx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndy"), "spin_ndy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndz"), "spin_ndz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1k"), "spin_b1k", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2k"), "spin_b2k", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1j"), "spin_b1j", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2j"), "spin_b2j", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1r"), "spin_b1r", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2r"), "spin_b2r", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1q"), "spin_b1q", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2q"), "spin_b2q", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1n"), "spin_b1n", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2n"), "spin_b2n", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1x"), "spin_b1x", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2x"), "spin_b2x", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1y"), "spin_b1y", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2y"), "spin_b2y", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1z"), "spin_b1z", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2z"), "spin_b2z", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPkk"), "spin_bPkk", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMkk"), "spin_bMkk", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPjj"), "spin_bPjj", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMjj"), "spin_bMjj", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPrr"), "spin_bPrr", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMrr"), "spin_bMrr", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPqq"), "spin_bPqq", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMqq"), "spin_bMqq", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPnn"), "spin_bPnn", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMnn"), "spin_bMnn", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPxx"), "spin_bPxx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMxx"), "spin_bMxx", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPyy"), "spin_bPyy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMyy"), "spin_bMyy", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPzz"), "spin_bPzz", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMzz"), "spin_bMzz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crk"), "spin_crk", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckr"), "spin_ckr", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnr"), "spin_cnr", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crn"), "spin_crn", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnk"), "spin_cnk", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckn"), "spin_ckn", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPrk"), "spin_cPrk", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMrk"), "spin_cMrk", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPnr"), "spin_cPnr", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMnr"), "spin_cMnr", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPnk"), "spin_cPnk", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMnk"), "spin_cMnk", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxx"), "spin_cxx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyy"), "spin_cyy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czz"), "spin_czz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyx"), "spin_cyx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxy"), "spin_cxy", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czy"), "spin_czy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyz"), "spin_cyz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czx"), "spin_czx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxz"), "spin_cxz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPyx"), "spin_cPyx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMyx"), "spin_cMyx", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPzy"), "spin_cPzy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMzy"), "spin_cMzy", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPzx"), "spin_cPzx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMzx"), "spin_cMzx", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crkP"), "spin_crkP", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnrP"), "spin_cnrP", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnkP"), "spin_cnkP", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crkM"), "spin_crkM", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnrM"), "spin_cnrM", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnkM"), "spin_cnkM", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cXxx"), "spin_cXxx", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cYyy"), "spin_cYyy", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cZzz"), "spin_cZzz", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyxP"), "spin_cyxP", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czyP"), "spin_czyP", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czxP"), "spin_czxP", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyxM"), "spin_cyxM", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czyM"), "spin_czyM", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czxM"), "spin_czxM", "", 100, -1.f, 1.f);
+//
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kNorm"), "spin_kNorm", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rNorm"), "spin_rNorm", "", 100, -1.f, 1.f);
+//  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "nNorm"), "spin_nNorm", "", 100, -1.f, 1.f);
+  
   // let's define another histogram instance but now with acceptance cuts
   // we can, but don't need to, define the cuts in the filling function themselves
   // so the histogram instance is defined identically as above except the histogram names
@@ -1295,6 +1557,135 @@ int main(int argc, char **argv) {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTp", "", 100, -1.f, 1.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT", "", 100, -1.f, 1.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
+
+
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "dPhi"), "spin_dPhi", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "dEta"), "spin_dEta", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdx"), "spin_kdx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdy"), "spin_kdy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kdz"), "spin_kdz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdx"), "spin_rdx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdy"), "spin_rdy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rdz"), "spin_rdz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndx"), "spin_ndx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndy"), "spin_ndy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ndz"), "spin_ndz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1k"), "spin_b1k", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2k"), "spin_b2k", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1j"), "spin_b1j", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2j"), "spin_b2j", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1r"), "spin_b1r", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2r"), "spin_b2r", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1q"), "spin_b1q", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2q"), "spin_b2q", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1n"), "spin_b1n", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2n"), "spin_b2n", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1x"), "spin_b1x", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2x"), "spin_b2x", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1y"), "spin_b1y", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2y"), "spin_b2y", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b1z"), "spin_b1z", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "b2z"), "spin_b2z", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPkk"), "spin_bPkk", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMkk"), "spin_bMkk", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPjj"), "spin_bPjj", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMjj"), "spin_bMjj", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPrr"), "spin_bPrr", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMrr"), "spin_bMrr", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPqq"), "spin_bPqq", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMqq"), "spin_bMqq", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPnn"), "spin_bPnn", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMnn"), "spin_bMnn", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPxx"), "spin_bPxx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMxx"), "spin_bMxx", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPyy"), "spin_bPyy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMyy"), "spin_bMyy", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bPzz"), "spin_bPzz", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bMzz"), "spin_bMzz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crk"), "spin_crk", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckr"), "spin_ckr", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnr"), "spin_cnr", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crn"), "spin_crn", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnk"), "spin_cnk", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckn"), "spin_ckn", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPrk"), "spin_cPrk", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMrk"), "spin_cMrk", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPnr"), "spin_cPnr", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMnr"), "spin_cMnr", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPnk"), "spin_cPnk", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMnk"), "spin_cMnk", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxx"), "spin_cxx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyy"), "spin_cyy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czz"), "spin_czz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyx"), "spin_cyx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxy"), "spin_cxy", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czy"), "spin_czy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyz"), "spin_cyz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czx"), "spin_czx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cxz"), "spin_cxz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPyx"), "spin_cPyx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMyx"), "spin_cMyx", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPzy"), "spin_cPzy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMzy"), "spin_cMzy", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cPzx"), "spin_cPzx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cMzx"), "spin_cMzx", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crkP"), "spin_crkP", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnrP"), "spin_cnrP", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnkP"), "spin_cnkP", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crkM"), "spin_crkM", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnrM"), "spin_cnrM", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnkM"), "spin_cnkM", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cXxx"), "spin_cXxx", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cYyy"), "spin_cYyy", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cZzz"), "spin_cZzz", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyxP"), "spin_cyxP", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czyP"), "spin_czyP", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czxP"), "spin_czxP", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cyxM"), "spin_cyxM", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czyM"), "spin_czyM", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "czxM"), "spin_czxM", "", 100, -1.f, 1.f);
+//
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "kNorm"), "spin_kNorm", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rNorm"), "spin_rNorm", "", 100, -1.f, 1.f);
+//  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "nNorm"), "spin_nNorm", "", 100, -1.f, 1.f);
+
 
 
 //  Histogram hist_cut_juan_paper;
@@ -1463,6 +1854,8 @@ int main(int argc, char **argv) {
   
   std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering");
   std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering");
+
+  std::cout << "Saving as: " << filename_cut << std::endl;
 
   hist_no_cut.save_as(filename_nocut);
   hist_cut.save_as(filename_cut);

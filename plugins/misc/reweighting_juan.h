@@ -284,7 +284,7 @@ struct HTT_Input {
       //std::cout << "ss_factor_1: " << ss_factor_1 << std::endl;
       Number2 ss_factor_beta = beta_sq * (1+c1*c2 - s1*s2*cos(phi1-phi2));
       
-      Number2 additional_factor_for_nointerf = 8 * pow(m_t, 2) * pi * alpha_s * beta / pow(s, 2);
+      Number2 additional_factor_for_no_interf = 8 * pow(m_t, 2) * pi * alpha_s * beta / pow(s, 2);
       
       //std::cout << "ss_factor_beta" << ss_factor_beta << std::endl;
       //Number2 M2_QCD = common_factor_for_M2_gg_QCD*beta_sq*(1-z_sq)*os_factor
@@ -312,7 +312,7 @@ struct HTT_Input {
       }
       // terms to add for the BSM cross section
       Number2 qcd_term = pow(alpha_s, 2) * pow(beta, 3) / (8 * s * pi) * common_factor_for_M2_gg_QCD * (1 - z_sq) * os_factor;
-      Number2 no_interference_term = common_factor_for_M2_gg_ss_nointerf * additional_factor_for_nointerf * (ss_factor_1 + ss_factor_beta);
+      Number2 no_interference_term = common_factor_for_M2_gg_ss_nointerf * additional_factor_for_no_interf * (ss_factor_1 + ss_factor_beta);
 
       // if beta_sq_ref < 0, calculate the old way, because there's no decription of what to do in that case in the paper
       Number2 interference_term_pseudo;

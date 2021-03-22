@@ -20,7 +20,9 @@
 
 // things I included
 #include <dirent.h>
+#include <sys/stat.h>
 #include <string>
+#include <string_view>
 // this one is to add light weight paticle masses, if it would work
 // #include "./misc/constants.h"
 // 
@@ -57,11 +59,45 @@ float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
   return std::sqrt(((px1 + px2) * (px1 + px2)) + ((py1 + py2) * (py1 + py2)));
 }
 
-int main() {
+inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+
+int main(int argc, char **argv) {
   // the core part of the framework are all within this namespace
   // note: an example of CL arguments are provided in bparking/bpark_tt3l.cc file
   // which is not yet integrated into the example
   using namespace Framework;
+
+
+    int c;
+  
+    opterr = 0;
+    std::string dir_string;
+    bool file_given = 0; 
+ 
+    while ((c = getopt (argc, argv, "f:")) != -1){
+      std::string arg = "";
+      if (optarg) arg = std::string(optarg);
+      switch (c)
+        {
+        case 'f':{
+          dir_string = arg;
+          file_given = 1;
+          break;}
+        default: {
+          std::cout << "You have to specify a directory with root files." << std::endl;
+          }
+        }
+    }
+    if (!file_given) {
+        std::cout << "You have to specify a directory with root files (-f <directory>)." << std::endl;
+        return 0;
+    }
+
 
   // first and foremost, we specify the input files we will be looking at
   // this is done by constructing a dataset object
@@ -75,7 +111,7 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
 //  dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m400_w20_00_RES_PSEUDO/root_files/");
+  //std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m400_w20_00_RES_PSEUDO/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -83,13 +119,17 @@ int main() {
      return EXIT_FAILURE;
   }
   while ((entry = readdir(dp))) {
-       puts(entry->d_name);
+       std::string filename = entry->d_name; 
+       if ( ends_with(filename, ".root")){
+           puts(entry->d_name);
        
-       std::string file_string = dir_string + std::string(entry->d_name);
+           std::string file_string = dir_string + "/" + std::string(entry->d_name);
 
-       dat.add_file(file_string);
+           dat.add_file(file_string);
+       }
   }
   closedir(dp);
+  std::cout << "Added all files!" << std::endl;
   
   // next step is to specify the attributes to be included in the analysis
   // for this we will make use of two data structures, collections and aggregates
@@ -770,10 +810,27 @@ int main() {
   // for analyzing only a subset, provide as argument the desired number of events
   dat.analyze();
 
+
+  std::cout << "Bin beim speichern angekommen!" << std::endl;
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_m400_w20_00_RES_PSEUDO_no_cut.root");
-  hist_cut.save_as("hist_m400_w20_00_RES_PSEUDO_cut.root");
+  // replace /nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs by hist
+
+  // some weird string replacements to save the hist files in the run directory in the framework
+  // should land in the right folder together with error, output and scripts and have the right filename
+
+  std::string dir_end = dir_string.replace(0, 36, "");
+  dir_end = dir_end.substr(0, dir_end.size() - 1);
+  
+  // replace the current beginning of the dir string (heavyhiggs_) with "hist_", the very beginning was already deleted by the string replace before 
+  std::string hist_name = dir_string.replace(0, 11, "hist_");
+  hist_name = hist_name.substr(0, hist_name.size() - 1);
+  
+  std::string hist_dir = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/";
+  
+  std::cout << "Save in: " + hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut.root") << std::endl;
+  hist_no_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut.root"));
+  hist_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_cut.root"));
   tree_gen.save();
 
   return 0;
