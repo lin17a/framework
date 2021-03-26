@@ -651,7 +651,7 @@ Number2 weight_ggHtt(event_t<Number2> event){
       std::cout << "M_2_bsm: " << M_2_bsm << std::endl;  
 
       // Number2 weight = M_2_bsm / M_2_QCD;
-      Number2 weight = 1. / M_2_QCD;
+      Number2 weight = 1. / M_2_bsm;
 
       std::cout << "weight: " << weight << std::endl;  
       
