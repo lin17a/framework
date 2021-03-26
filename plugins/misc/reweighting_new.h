@@ -525,7 +525,7 @@ Number2 calc_resonance_scalar_new(event_t<Number2> event){
                break;}
           case calc_weight_version::juan_paper:{
               Number2 factor_resonance = pow(constants<Number2>::G_F, 2) * constants<Number2>::m_t_ref_sq * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3)); 
-              resonance_scalar = factor_resonance * pow(event.beta_ref, 3) * std::norm(NB / denomH) * event.ss_factor_beta;
+              resonance_scalar = factor_resonance * event.beta_ref * std::norm(NB / denomH) * event.ss_factor_beta;
               break;}
           default:
               break;
@@ -576,7 +576,7 @@ Number2 calc_interference_scalar_new(event_t<Number2> event){
           case calc_weight_version::juan_paper:{
               Number2 factor_interference = constants<Number2>::G_F * constants<Number2>::m_t_ref_sq / (48 * sqrt(2.) * TMath::Pi()); 
               Number2 beta_z_factor = 1. - event.beta_ref_sq * event.z_sq;
-              interference_scalar = factor_interference * pow(event.beta_ref, 3) / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
+              interference_scalar = factor_interference * event.beta_ref / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
               break;}
           default:
               break;
@@ -650,8 +650,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       std::cout << "M_2_qcd: " << M_2_QCD << std::endl;  
       std::cout << "M_2_bsm: " << M_2_bsm << std::endl;  
 
-      // Number2 weight = M_2_bsm / M_2_QCD;
-      Number2 weight = 1. / M_2_QCD;
+      Number2 weight = M_2_bsm / M_2_QCD;
+      //Number2 weight = 1. / M_2_QCD;
 
       std::cout << "weight: " << weight << std::endl;  
       
