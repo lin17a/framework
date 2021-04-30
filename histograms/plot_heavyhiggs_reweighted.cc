@@ -9,11 +9,15 @@
     Color_t line_color;
   };
   
-  auto SetUpHistograms = [](std::vector<histogram *> *hists, TLegend *legend, int line_width = 3, int rebin = 2) {
+  auto SetUpHistograms = [](std::vector<histogram *> *hists, TLegend *legend, int line_width = 3, int rebin = 4) {
     for (histogram *hist : *hists) {
       hist->hist->SetLineColor(hist->line_color);
       hist->hist->SetLineWidth(line_width);
       hist->hist->Rebin(rebin);
+      // set all bins under 400 GeV to zero
+      //for (int bin = 0; bin < 10; bin++){
+      //  hist->hist->SetBinContent(bin, 0);
+      //}
       hist->hist->Scale(1. / hist->hist->Integral());
     } 
 
@@ -25,6 +29,8 @@
     std::transform(hists->begin(), hists->end(), std::back_inserter(mins),
                    [](auto h) -> double_t { std::cout <<  std::to_string(h->hist->GetMinimum()) << "\n"; return h->hist->GetMinimum(); });
     double_t min_value = *(std::min_element(mins.begin(), mins.end()));
+
+    std::cout << "max: " << max_value << std::endl;
    
     if (min_value <= 0) {
        std::cout << "min too small" << std::endl;
@@ -60,13 +66,28 @@
     {"pz","GeV"}
   };
 
-  auto DrawHistograms = [ SetUpHistograms, units ](std::string filename_generated, std::string filename_reweighted, std::string folder, std::string filename_histogram, std::string res_int, std::string higgs_type, std::string mass_width){
-   
-    TFile *f1 = TFile::Open( filename_generated.c_str() );
-    //TFile *f2 = TFile::Open( "hist_ttbarlo_reweighting_pseudo_scalar_m1000.000000_w25.000000_juan_paper_resonance_cut_after_reordering.root" );
-    TFile *f3 = TFile::Open( filename_reweighted.c_str() );
 
-    if (!f1->IsOpen() or !f3->IsOpen()){
+  std::vector<std::string> log_scale_hists = {"ttbar_mass_cut"};
+
+  auto DrawHistograms = [ SetUpHistograms, units, log_scale_hists ](std::vector<std::string> filenames_higgs_reweighted, std::string filename_reweighted_ttbarlo, std::string folder, std::string filename_histogram, std::string res_int, std::string higgs_type, std::string mass_width){
+   
+    std::vector<TFile *> higgs_files;
+    std::vector<TH1F *> higgs_hs;
+
+
+    higgs_files.clear();
+    for (int i = 0; i < filenames_higgs_reweighted.size(); i++){
+        higgs_files.push_back( TFile::Open(filenames_higgs_reweighted[i].c_str()) );
+    }
+
+    TFile *f1 = TFile::Open( filename_reweighted_ttbarlo.c_str() );
+    //TFile *f2 = TFile::Open( "hist_ttbarlo_reweighting_pseudo_scalar_m1000.000000_w25.000000_juan_paper_resonance_cut_after_reordering.root" );
+    //TFile *f2 = TFile::Open( filename_reweighted_higgs_1.c_str() );
+    //TFile *f3 = TFile::Open( filename_reweighted_higgs_2.c_str() );
+    //TFile *f4 = TFile::Open( filename_reweighted_higgs_3.c_str() );
+    //TFile *f5 = TFile::Open( filename_reweighted_higgs_4.c_str() );
+
+    if (!f1->IsOpen()){ // or !f3->IsOpen()){
       std::cout << "File does not exist." << std::endl;
       return 0;
     }
@@ -84,33 +105,48 @@
        std::string hist_name = key1->GetName();
        // get the first histogram from the first file
        TH1F *h1 = (TH1F *) f1->Get(hist_name.c_str());
-       std::string title = hist_name;     
+       std::string title = hist_name;
+       std::cout << "hist name ttbar: " << hist_name << std::endl;     
 
       // try to find histograms with the same name 
       try {
           
           // get histograms with the same attribute from the other files 
+        higgs_hs.clear();
+        for (int i = 0; i < higgs_files.size(); i++){
+          higgs_hs.push_back( (TH1F *) higgs_files[i]->Get(hist_name.c_str()) );
+          std::cout << "hist name heavyhiggs: " << higgs_files[i]->Get(hist_name.c_str())->GetName() << std::endl;
+        }
+        std::cout << "hier sollten jetzt " << higgs_files.size() << " viele Titel stehen!" << std::endl;
       //    TH1F *h2 = (TH1F *) f2->Get( hist_name.c_str());   
-          TH1F *h3 = (TH1F *) f3->Get( hist_name.c_str());   
+          //TH1F *h2 = (TH1F *) f2->Get( hist_name.c_str());   
+          //TH1F *h3 = (TH1F *) f3->Get( hist_name.c_str());   
+          //TH1F *h4 = (TH1F *) f4->Get( hist_name.c_str());   
+          //TH1F *h5 = (TH1F *) f5->Get( hist_name.c_str());   
 
           // defining histogram structs with a histogram, color and name to hand it all together to the SetUp function
-          histogram hist1 = {h1, "generated", kGreen-3};
+          histogram hist1 = {h1, "reweighted ttbarlo", kGreen-3};
         //  histogram hist2 = {h2, "int pseudo", kGreen+3};
-          histogram hist3 = {h3, "reweighted", kBlue+2};
+        //  histogram hist3 = {h3, "reweighted heavyhiggs", kRed}; //kBlue+2
           
           // add a new histogram containing the sum of ttbar and the pseudo scalar higgs histograms
-          //TH1F *h_sum_res_int_pseudo = (TH1F*) h1->Clone();
-        //  h_sum_res_int_pseudo->Add(h2);
-          //h_sum_ttbarlo_res_int_pseudo->Add(h4);
+          TH1F *h_sum_heavyhiggs = (TH1F*) higgs_hs[0]->Clone();
+       
+          for (int i = 1; i < higgs_hs.size(); i++){
+            h_sum_heavyhiggs->Add(higgs_hs[i]);
+          }
+          //h_sum_heavyhiggs->Add(h3);
+          //h_sum_heavyhiggs->Add(h4);
+          //h_sum_heavyhiggs->Add(h5);
           //h_sum_res_int_pseudo->SetLineColor(kAzure+3);
 
-         // histogram hist_sum_pseudo = {h_sum_res_int_pseudo, "sum pseudo", kRed+2};
+          histogram hist_sum_heavyhiggs = {h_sum_heavyhiggs, "sum heavyhiggs", kRed+2};
 
           // initialize legend, numbers are the coordinates of the bottom left corner und upper right corner
           // fits exactly under the info panel
           auto legend = new TLegend(0.78,0.69,0.98,0.77);
           
-          std::vector<histogram *> hists{&hist1, &hist3};
+          std::vector<histogram *> hists{&hist1, &hist_sum_heavyhiggs};
 
           // adjust colors, scales, ... 
           SetUpHistograms(&hists, legend, 2, 1);
@@ -135,30 +171,29 @@
           h1->SetNameTitle(hist_name.c_str(), hist_title.c_str());
           
           TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
-          //TCanvas can("canvas", 
-          can->SetLogy();
-          can->cd();
-             
+          //if the hist name is in the log scale list, make a log scale
+          if (find(log_scale_hists.begin(), log_scale_hists.end(), hist_name) != log_scale_hists.end()){ 
+            std::cout << "Making log scale for " << hist_name << std::endl;
+            can->SetLogy();
+            can->cd();
+          }
+
           // draw all in the same histogram
           h1->Draw("pe");
 //          h2->Draw("pesame");
-          h3->Draw("pesame");
+          h_sum_heavyhiggs->Draw("pesame");
 
           can->Clear();
-         
-          gStyle->SetLabelSize(.025, "XY");
-          gStyle->SetTitleFontSize(.04);
-          gStyle->SetTitleSize(.03, "XY");
- 
+          
           // add a sub pad with the ratio 
-          auto rp1 = new TRatioPlot(h1, h3);
+          auto rp1 = new TRatioPlot(h1, h_sum_heavyhiggs);
           rp1->Draw();
-          rp1->GetLowerRefYaxis()->SetTitle("generated/reweighted");
+          rp1->GetLowerRefYaxis()->SetLabelSize(0.02);
+          rp1->GetLowerRefYaxis()->SetTitleSize(0.02);
+          rp1->GetLowerRefYaxis()->SetTitle("reweighted ttbar / sum heavyhiggs");
           rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
-          //rp1->GetLowerRefXaxis()->SetTitleSize(20);
-          rp1->GetXaxis()->SetLabelSize(0.015);
-          //rp1->SetMinimum(-10);
-          //rp1->SetMaximum(10); 
+//          rp1->SetMinimum(-10);
+//          rp1->SetMaximum(10); 
           can->Update();
 
 
@@ -188,28 +223,38 @@
 
 
 
+// leaving out m600_w90 and m1000_w150
 
-
-  std::vector<std::string> mass_width_combis = { "m400_w20", "m1000_w25", "m600_w30", "m800_w20" };
+  std::vector<std::string> mass_width_combis = { "m400_w20", "m1000_w25", "m600_w30", "m800_w20", "m1000_w100", "m1000_w50", "m400_w10", "m400_w40", "m400_w60", "m500_w25", "m500_w50", "m500_w75", "m600_w15", "m600_w60", "m800_w120", "m800_w40", "m800_w80"};
   std::vector<std::string> zeros = { "00", "000", "00", "000"};
   std::vector<std::string> res_int = {"res"}; //, "int"};
   std::vector<std::string> RES_INT = {"RES"}; //, "INT"};
   std::vector<std::string> r_i = {"r"}; //, "i"};
   std::vector<std::string> resonance_interference = {"resonance"}; //, "interference"};
-  std::vector<std::string> PSEUDO_SCALAR = {"SCALAR"}; // {"PSEUDO", 
-  std::vector<std::string> pseudo_scalar = {"scalar"};//{"pseudo_scalar"
-  std::vector<std::string> p_s = {"s"};//"p", 
+  std::vector<std::string> PSEUDO_SCALAR = {"PSEUDO", "SCALAR"};
+  std::vector<std::string> pseudo_scalar = {"pseudo_scalar", "scalar"};
+  std::vector<std::string> p_s = {"p", "s"};
+  std::vector<std::string> cut = {"cut", "no_cut"};
 
+  std::vector<std::string> filenames_reweighted_heavyhiggs;
 
-  for (int i = 0; i < mass_width_combis.size(); i++){
-    for (int j = 0; j < pseudo_scalar.size(); j++){
-  
-      std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_" + mass_width_combis[i] + "_" + zeros[i]  + "_"+ RES_INT[0] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_" + mass_width_combis[i] + "_" + zeros[i] +  "_" + RES_INT[0] + "_" + PSEUDO_SCALAR[j] + "_no_cut_with_z.root";
-      std::cout << "filename_generated: " << filename_generated << std::endl;
-      std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[0] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[0] + "_no_cut_after_reordering_with_spin_angles.root";
-      std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
+  //for (int i = 0; i < mass_width_combis.size(); i++){
+    //for (int j = 0; j < 1; j++){
+  for (int j = 0; j < pseudo_scalar.size(); j++){
+    for (int k = 0; k < cut.size(); k++){
+      
+      filenames_reweighted_heavyhiggs.clear();
+      
+      for (int i = 0; i < mass_width_combis.size(); i++){
+         filenames_reweighted_heavyhiggs.push_back("/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_reweighting_" + p_s[j] + "_" + r_i[0] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/" + "hist_heavyhiggs_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i] + "_juan_paper_" + resonance_interference[0]+ "_" + cut[k] + "_after_reordering_" + res_int[0] + "_reweighting_only.root");  // _different_beta_in_QCD_and_BSM.root");
+         std::cout << "filiename_reweighted_heavyhiggs: " << filenames_reweighted_heavyhiggs[i] << std::endl;
+        }
  
-      std::string folder = mass_width_combis[i] + "_" + pseudo_scalar[j] + "_" + res_int[0] + "_generated_vs_reweighted_with_spin_angles";
+      std::string filename_reweighted_ttbarlo = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[0] + "_m400_w20_reweighted_juan_paper_fixed_width/" + "hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m400_w20_juan_paper_" + resonance_interference[0] +  "_" + cut[k] + "_after_reordering_std_reweighting_only_2.root"; //_different_beta_in_QCD_and_BSM.root";
+      
+      std::cout << "filename_reweighted_ttbarlo: " << filename_reweighted_ttbarlo << std::endl;
+ 
+      std::string folder = pseudo_scalar[j] + "_" + res_int[0] + "_" + cut[k] +"_more_higgs_summed_vs_ttbarlo"; //_different_beta_in_QCD_and_BSM";
       if (mkdir(folder.c_str(), 0777) != 0){
         std::cout << "Couldn't create directory." << std::endl;
       }
@@ -217,7 +262,7 @@
       std::string filename_histogram = folder + "/" +  std::string("all") + std::string(".pdf");
       std::cout << "filename_histogram: " << filename_histogram << std::endl;
       
-      DrawHistograms(filename_generated, filename_reweighted, folder, filename_histogram, resonance_interference[0], pseudo_scalar[j], mass_width_combis[i]);
+      DrawHistograms(filenames_reweighted_heavyhiggs, filename_reweighted_ttbarlo, folder, filename_histogram, resonance_interference[0], pseudo_scalar[j], mass_width_combis[0]);
     }
   }
 

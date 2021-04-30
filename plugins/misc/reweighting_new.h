@@ -14,6 +14,10 @@ struct HTT_Input {
 };
 
 
+TLorentzVector f_zmf_tt (TLorentzVector p4_particle, TLorentzVector p4_new_rest_frame) {
+  p4_particle.Boost( -1. * p4_new_rest_frame.BoostVector() );
+  return p4_particle;
+}
 
 enum class calc_weight_version{
   juan_paper, juan_code, juan_paper_different_M2, undefined
@@ -111,47 +115,77 @@ struct event_t{
         }
         this->beta_ref = beta_ref;
 
-        TVector3 zBoost(0.,0.,-vec_4_ttbar.Pz()/vec_4_ttbar.E()); vec_4_ttbar.Boost(zBoost);
-        TVector3 transverseBoost(-vec_4_ttbar.Px()/vec_4_ttbar.E(),-vec_4_ttbar.Py()/vec_4_ttbar.E(),0.); vec_4_ttbar.Boost(transverseBoost);
-        vec_4_t.Boost(zBoost); vec_4_t.Boost(transverseBoost);
-        vec_4_lbar.Boost(zBoost); vec_4_lbar.Boost(transverseBoost);
-        vec_4_tbar.Boost(zBoost); vec_4_tbar.Boost(transverseBoost);
-        vec_4_l.Boost(zBoost); vec_4_l.Boost(transverseBoost);
-        
-        Number2 z = vec_4_t.CosTheta();
+
+        static const TVector3 zBase(0., 0., 1.);
+        TLorentzVector vec_4_t_hel = f_zmf_tt(vec_4_t, vec_4_ttbar);
+        TLorentzVector vec_4_tbar_hel = f_zmf_tt(vec_4_tbar, vec_4_ttbar);
+        TLorentzVector vec_4_l_hel = f_zmf_tt(vec_4_l, vec_4_ttbar);
+        TLorentzVector vec_4_lbar_hel = f_zmf_tt(vec_4_lbar, vec_4_ttbar);
+        //Number2 z = vec_4_t_hel.Vect().Unit().Dot( vec_4_ttbar.Vect().Unit() ); 
+        Number2 z = vec_4_t_hel.Vect().Unit().Dot(zBase);
+
+//        TVector3 zBoost(0.,0.,-vec_4_ttbar.Pz()/vec_4_ttbar.E()); vec_4_ttbar.Boost(zBoost);
+//        TVector3 transverseBoost(-vec_4_ttbar.Px()/vec_4_ttbar.E(),-vec_4_ttbar.Py()/vec_4_ttbar.E(),0.); vec_4_ttbar.Boost(transverseBoost);
+//        vec_4_t.Boost(zBoost); vec_4_t.Boost(transverseBoost);
+//        vec_4_lbar.Boost(zBoost); vec_4_lbar.Boost(transverseBoost);
+//        vec_4_tbar.Boost(zBoost); vec_4_tbar.Boost(transverseBoost);
+//        vec_4_l.Boost(zBoost); vec_4_l.Boost(transverseBoost);
+//        
+//        Number2 z = vec_4_t.CosTheta();
         this->z = z;
         Number2 z_sq = z * z;
-        this->z_sq = z_sq;  
-        Number2 minusPhi1Plane = -vec_4_t.Phi();
-        TVector3 zVect(0.,0.,1.);
-        vec_4_t.Rotate(minusPhi1Plane,zVect);
-        vec_4_lbar.Rotate(minusPhi1Plane,zVect);
-        vec_4_tbar.Rotate(minusPhi1Plane,zVect);
-        vec_4_l.Rotate(minusPhi1Plane,zVect);
-        Number2 t1Yangle = -atan2(vec_4_t.Px(),vec_4_t.Pz());
-        TVector3 yVect(0.,1.,0.);
-        vec_4_t.Rotate(t1Yangle,yVect);
-        vec_4_lbar.Rotate(t1Yangle,yVect);
-        vec_4_tbar.Rotate(t1Yangle,yVect);
-        vec_4_l.Rotate(t1Yangle,yVect);
+        this->z_sq = z_sq; 
 
-        TVector3 t1Boost(-vec_4_t.Px()/vec_4_t.E(),-vec_4_t.Py()/vec_4_t.E(),-vec_4_t.Pz()/vec_4_t.E()); 
-        vec_4_lbar.Boost(t1Boost);
-        TLorentzVector vec_4_lbar_trest = vec_4_lbar;
-        TVector3 t2Boost(-vec_4_tbar.Px()/vec_4_tbar.E(),-vec_4_tbar.Py()/vec_4_tbar.E(),-vec_4_tbar.Pz()/vec_4_tbar.E()); 
-        vec_4_l.Boost(t2Boost);
-        TLorentzVector vec_4_l_trest = vec_4_l;
-        this->vec_4_l_trest = vec_4_l_trest;
-        this->vec_4_lbar_trest = vec_4_lbar_trest;    
-        
+        TLorentzVector vec_4_l_tbar_rest = f_zmf_tt(vec_4_l_hel, vec_4_tbar_hel);
+        TLorentzVector vec_4_lbar_t_rest = f_zmf_tt(vec_4_lbar_hel, vec_4_t_hel);
 
-        Number2 c1 = vec_4_lbar_trest.CosTheta();
-        //std::cout << "c1: " << c1 << std::endl;
-        Number2 c2 = vec_4_l_trest.CosTheta();
+        const Number2 spTP = std::sqrt(1. - z_sq);
+        const Number2 sY = (z >= 0.) ? 1. : -1.;
+        const TVector3 kBase = vec_4_t_hel.Vect().Unit();
+        const TVector3 rBase = ( (sY / spTP) * (zBase - (z * kBase)) ).Unit();
+        const TVector3 nBase = ( (sY / spTP) * zBase.Cross(kBase) ).Unit();
+        Number2 b1k = vec_4_lbar_t_rest.Vect().Unit().Dot( kBase );
+        Number2 b2k_like = vec_4_l_tbar_rest.Vect().Unit().Dot( kBase );
+        Number2 b1r = vec_4_lbar_t_rest.Vect().Unit().Dot( rBase );
+        Number2 b2r_like = vec_4_l_tbar_rest.Vect().Unit().Dot( rBase );
+        Number2 b1n = vec_4_lbar_t_rest.Vect().Unit().Dot( nBase );
+        Number2 b2n_like = vec_4_l_tbar_rest.Vect().Unit().Dot( nBase );
+
+        Number2 c1 = b1k; 
+        Number2 c2 = b2k_like;
+        Number2 phi1 = atan2(b1n, b1r);
+        Number2 phi2 = atan2(b2n_like, b2r_like); 
+
+//        Number2 minusPhi1Plane = -vec_4_t_hel.Phi();
+//        TVector3 zVect(0.,0.,1.);
+//        vec_4_t_hel.Rotate(minusPhi1Plane,zVect);
+//        vec_4_lbar_hel.Rotate(minusPhi1Plane,zVect);
+//        vec_4_tbar_hel.Rotate(minusPhi1Plane,zVect);
+//        vec_4_l_hel.Rotate(minusPhi1Plane,zVect);
+//        Number2 t1Yangle = -atan2(vec_4_t_hel.Px(),vec_4_t_hel.Pz());
+//        TVector3 yVect(0.,1.,0.);
+//        vec_4_t_hel.Rotate(t1Yangle,yVect);
+//        vec_4_lbar_hel.Rotate(t1Yangle,yVect);
+//        vec_4_tbar_hel.Rotate(t1Yangle,yVect);
+//        vec_4_l_hel.Rotate(t1Yangle,yVect);
+//
+//        TVector3 t1Boost(-vec_4_t_hel.Px()/vec_4_t_hel.E(),-vec_4_t_hel.Py()/vec_4_t_hel.E(),-vec_4_t_hel.Pz()/vec_4_t_hel.E()); 
+//        vec_4_lbar_hel.Boost(t1Boost);
+//        TLorentzVector vec_4_lbar_trest = vec_4_lbar_hel;
+//        TVector3 t2Boost(-vec_4_tbar_hel.Px()/vec_4_tbar_hel.E(),-vec_4_tbar_hel.Py()/vec_4_tbar_hel.E(),-vec_4_tbar_hel.Pz()/vec_4_tbar_hel.E()); 
+//        vec_4_l_hel.Boost(t2Boost);
+//        TLorentzVector vec_4_l_trest = vec_4_l_hel;
+//        this->vec_4_l_trest = vec_4_l_trest;
+//        this->vec_4_lbar_trest = vec_4_lbar_trest;    
+//        
+//
+//        Number2 c1 = vec_4_lbar_trest.CosTheta();
+//        //std::cout << "c1: " << c1 << std::endl;
+//        Number2 c2 = vec_4_l_trest.CosTheta();
         Number2 s1 = sqrt(1-c1*c1);
         Number2 s2 = sqrt(1-c2*c2);
-        Number2 phi1 = vec_4_lbar_trest.Phi();
-        Number2 phi2 = vec_4_l_trest.Phi();
+//        Number2 phi1 = vec_4_lbar_trest.Phi();
+//        Number2 phi2 = vec_4_l_trest.Phi();
      
         // os factor deleted one sqrt in last line 
         Number2 os_factor_juan_paper = (1 + z_sq + (1 - z_sq) * (1 - beta_ref_sq)) * (1. - c1*c2)
@@ -234,7 +268,7 @@ Number2 calc_qcd_interference_scalar(event_t<Number2> event){
                                          * event.ss_factor_beta;
                break;}
           case calc_weight_version::juan_paper:{
-              Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
+              Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
               Number2 beta_z_factor_sq = beta_z_factor * beta_z_factor;
               Number2 factor_interference = 4 / 3 * pow(constants<Number2>::m_t_ref, 2) * pow(TMath::Pi(), 3) 
                                             / (pow(event.s, 2) * beta_z_factor_sq);
@@ -243,7 +277,7 @@ Number2 calc_qcd_interference_scalar(event_t<Number2> event){
               // if (event.higgs_type != higgs_type_t::scalar) {
               //     return 0;
               // } 
-              qcd_interference_scalar = factor_interference * event.beta_ref
+              qcd_interference_scalar = factor_interference * event.beta
                                        // setting N to zero
                                        // * std::norm((Number2) 1. - factor_in_norm_interference * (NB / denomH))
                                        * event.ss_factor_beta;
@@ -294,7 +328,7 @@ Number2 calc_qcd_interference_pseudo(event_t<Number2> event){
                                           * event.ss_factor_1;
              break;}
          case calc_weight_version::juan_paper:{
-             Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
+             Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
              Number2 beta_z_factor_sq = beta_z_factor * beta_z_factor;
              Number2 factor_interference = 4 / 3 * pow(constants<Number2>::m_t_ref, 2) * pow(TMath::Pi(), 3)  
                                            / (pow(event.s, 2) * beta_z_factor_sq);
@@ -303,7 +337,7 @@ Number2 calc_qcd_interference_pseudo(event_t<Number2> event){
              //if (event.higgs_type != higgs_type_t::pseudo_scalar){
              //    return 0;
              //}         
-             qcd_interference_pseudo = factor_interference * event.beta_ref
+             qcd_interference_pseudo = factor_interference * event.beta
  
                                      // setting P to zero??
                                      //  * std::norm((Number2) 1. - factor_in_norm_interference * (PB / denomA))
@@ -321,10 +355,10 @@ Number2 calc_qcd_no_interference(event_t<Number2> event){
     Number2 additional_factor_for_nointerf = 0;
     switch (event.version){ 
         case calc_weight_version::juan_paper:
-            additional_factor_for_nointerf = 8 * pow(constants<Number2>::m_t_ref, 2) * TMath::Pi() * event.beta_ref / pow(event.s, 2);
+            additional_factor_for_nointerf = 8 * pow(constants<Number2>::m_t_ref, 2) * TMath::Pi() * event.beta / pow(event.s, 2);
             break;
         case calc_weight_version::juan_code: 
-            additional_factor_for_nointerf = 1 - event.beta_ref_sq;
+            additional_factor_for_nointerf = 1 - event.beta_sq;
             break;
         default:
             break;
@@ -340,7 +374,7 @@ Number2 calc_qcd_opp_gluon(event_t<Number2> event){
     Number2 opp_gluon_qcd_term = 0;
  
     if (event.version == calc_weight_version::juan_paper){
-       opp_gluon_qcd_term = 2 * pow(event.beta_ref, 3) * TMath::Pi() / event.s * common_factor_for_M2_gg_QCD * (1 - event.z_sq) 
+       opp_gluon_qcd_term = 2 * pow(event.beta, 3) * TMath::Pi() / event.s * common_factor_for_M2_gg_QCD * (1 - event.z_sq) 
                   * event.os_factor_juan_paper;
     }
     if (event.version == calc_weight_version::juan_code){
@@ -424,7 +458,7 @@ Number2 calc_resonance_pseudo_new(event_t<Number2> event){
              break;}
          case calc_weight_version::juan_paper:{
              Number2 factor_resonance = pow(constants<Number2>::G_F, 2) * constants<Number2>::m_t_ref_sq * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3));
-             resonance_pseudo = factor_resonance * event.beta_ref * std::norm(PB / denomA) * event.ss_factor_1;
+             resonance_pseudo = factor_resonance * event.beta * std::norm(PB / denomA) * event.ss_factor_1;
              break;}
          default:
              break;
@@ -474,8 +508,8 @@ Number2 calc_interference_pseudo_new(event_t<Number2> event){
              break;}
          case calc_weight_version::juan_paper:{
              Number2 factor_interference = constants<Number2>::G_F * constants<Number2>::m_t_ref_sq / ( 48 * sqrt(2) * TMath::Pi());
-             Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
-             interference_pseudo = factor_interference * event.beta_ref / beta_z_factor * (PB / denomA).real() * event.ss_factor_1;
+             Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
+             interference_pseudo = factor_interference * event.beta / beta_z_factor * (PB / denomA).real() * event.ss_factor_1;
              break;}
          default:
              break;
@@ -525,7 +559,7 @@ Number2 calc_resonance_scalar_new(event_t<Number2> event){
                break;}
           case calc_weight_version::juan_paper:{
               Number2 factor_resonance = pow(constants<Number2>::G_F, 2) * constants<Number2>::m_t_ref_sq * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3)); 
-              resonance_scalar = factor_resonance * event.beta_ref * std::norm(NB / denomH) * event.ss_factor_beta;
+              resonance_scalar = factor_resonance * event.beta * std::norm(NB / denomH) * event.ss_factor_beta;
               break;}
           default:
               break;
@@ -575,8 +609,8 @@ Number2 calc_interference_scalar_new(event_t<Number2> event){
                break;}
           case calc_weight_version::juan_paper:{
               Number2 factor_interference = constants<Number2>::G_F * constants<Number2>::m_t_ref_sq / (48 * sqrt(2.) * TMath::Pi()); 
-              Number2 beta_z_factor = 1. - event.beta_ref_sq * event.z_sq;
-              interference_scalar = factor_interference * event.beta_ref / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
+              Number2 beta_z_factor = 1. - event.beta_sq * event.z_sq;
+              interference_scalar = factor_interference * event.beta / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
               break;}
           default:
               break;

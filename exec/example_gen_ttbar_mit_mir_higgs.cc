@@ -40,6 +40,8 @@
 //   };
 // }
 
+auto printer_normal = [] (auto &p) {std::cout << p << "\n";};
+
 // declare in advance a few functions we will need in the analysis
 float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
                             float pt2, float eta2, float phi2, float mass2)
@@ -58,6 +60,46 @@ float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 
   return std::sqrt(((px1 + px2) * (px1 + px2)) + ((py1 + py2) * (py1 + py2)));
 }
+
+float cos_theta(float pt1, float eta1, float phi1, float mass1,
+                float pt2, float eta2, float phi2, float mass2)
+{
+    TLorentzVector p1, p2, sum_p1_p2;
+    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+    p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
+    sum_p1_p2 = p1 + p2; 
+    TVector3 zBoost(0.,0.,-sum_p1_p2.Pz()/sum_p1_p2.E()); sum_p1_p2.Boost(zBoost);
+    TVector3 transverseBoost(-sum_p1_p2.Px()/sum_p1_p2.E(),-sum_p1_p2.Py()/sum_p1_p2.E(),0.); sum_p1_p2.Boost(transverseBoost);
+    p1.Boost(zBoost); 
+    p1.Boost(transverseBoost);
+    return p1.CosTheta();
+}
+
+TLorentzVector f_zmf_tt (TLorentzVector p4, TLorentzVector p4lab_TT) {
+  p4.Boost( -1. * p4lab_TT.BoostVector() );
+  return p4;
+}
+
+float diff_cos_theta_cpTP(float pt1, float eta1, float phi1, float mass1,
+                          float pt2, float eta2, float phi2, float mass2)
+{
+    TLorentzVector p1, p2, sum_p1_p2;
+    p1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
+    p2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
+    sum_p1_p2 = p1 + p2; 
+    static const TVector3 zBase(0., 0., 1.);
+    const TLorentzVector p4hel_pTop = f_zmf_tt(p1, sum_p1_p2);
+    float cpTP = p4hel_pTop.Vect().Unit().Dot(zBase);
+    
+    TVector3 zBoost(0.,0.,-sum_p1_p2.Pz()/sum_p1_p2.E()); sum_p1_p2.Boost(zBoost);
+    TVector3 transverseBoost(-sum_p1_p2.Px()/sum_p1_p2.E(),-sum_p1_p2.Py()/sum_p1_p2.E(),0.); sum_p1_p2.Boost(transverseBoost);
+    p1.Boost(zBoost); 
+    p1.Boost(transverseBoost);
+    float cos_theta = p1.CosTheta();
+
+    return cpTP - cos_theta;
+}
+
 
 inline bool ends_with(std::string const & value, std::string const & ending)
 {
@@ -172,7 +214,7 @@ int main(int argc, char **argv) {
   // as with 3- the framework adapts the memory layout as the need arises, but it is good practice to provide a helpful hint
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 11, 8192);
+  Collection<boolean, int, float, double> gen_particle("gen_particle", "nGenPart", 11, 8192);
   gen_particle.add_attribute("mass", "GenPart_mass", 1.f);
   gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
   gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
@@ -323,6 +365,50 @@ int main(int argc, char **argv) {
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle);
 
+
+  // add LHE particle Collection for spin checks
+  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nLHEPart", 12, 16);
+//  std::cout << "before adding sth" << std::endl;
+  lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
+  lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
+  lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
+  lhe_particle.add_attribute("default_mass", "LHEPart_mass", 1.f);
+  lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
+//  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
+
+  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle);
+
+  //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
+  //  this is done by providing a function, whose arguments are references to the groups
+  //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
+  //  the first argument is identified with the first group given to the aggregate constructor and so on
+  lhe_event.set_indexer([] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
+                       -> std::vector<std::array<int, 4>> {
+    auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
+    auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
+    auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
+    auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+    std::cout << "indexe was im lhe event" << std::endl;
+    std::cout << "top size: " << top.size() << std::endl;
+    std::cout << "antitop size: " << antitop.size() << std::endl;
+    std::cout << "lepton size: " << lepton.size() << std::endl;
+    std::cout << "antilepton size: " << antilepton.size() << std::endl;
+    if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1){
+       std::cout << "number of particles is wrong" << std::endl;
+       return {};
+    }
+    return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+  });
+  
+
+  // having specified all the branches we are interested in, we associate the collections with the dataset
+  // this is done by the call below, where the arguments are simply all the collections we are considering
+  // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
+  // be sure to include all the collections in the call, as step-wise association is currently not supported
+  dat.associate(metadata, gen_particle, lhe_particle);
+
+
+
   // now we move to the case of attributes that are well-defined only for some selection of elements from the collections
   // for example, the invariant mass of the system of final top quark pair is relevant only for gen_particle with attribute dileptonic_ttbar == 1 or 6
   // for this we have aggregate, which is used to combine multiple not necessarily distinct groups according to some arbitrary indexing rule
@@ -362,7 +448,7 @@ int main(int argc, char **argv) {
   // we now provide a regular function pointer to 2-, unlike lambda function as we did before
   // both are supported in either case
   // 3- the list of underlying group attributes in the same order as used in 2-
-  // the syntax is underlying_group::attribute
+  // the syntax is underlying_group::attribute  // when the same underlying attribute is used multiple times, the aggregate takes care of the indexing
   // when the same underlying attribute is used multiple times, the aggregate takes care of the indexing
   // here the first gen_particle::pt is read off the top index, and the second time from the antitop index
   gen_ttbar.add_attribute("ttbar_mass", system_invariant_mass, 
@@ -372,6 +458,10 @@ int main(int argc, char **argv) {
   gen_ttbar.add_attribute("ttbar_pt", pt_vector_sum, 
                           "gen_particle::pt", "gen_particle::phi", "gen_particle::pt", "gen_particle::phi");
 
+  gen_ttbar.add_attribute("t_CosTheta", cos_theta, 
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+  
   // possibly redundant, but simple copies of the underlying attribute at the index of interest is also possible
   // by masking the index through unnamed arguments
   // we will do this twice in this example, so let's declare the lambdas in advance
@@ -567,6 +657,24 @@ int main(int argc, char **argv) {
   spin_add_attribute("cpTTT", spin_correlation<>("cpTTT"));
   spin_add_attribute("cpTP", spin_correlation<>("cpTP"));
 
+
+  lhe_event.add_attribute("cpTTT_lhe", spin_correlation<>("cpTTT"), "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+        				                            "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",  
+   					                            "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",  
+   					                            "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");  
+
+  lhe_event.add_attribute("cpTP_lhe", spin_correlation<>("cpTP"), "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+        				                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",  
+   					                          "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",  
+   					                          "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");  
+  lhe_event.add_attribute("t_CosTheta_lhe", cos_theta, 
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+
+  lhe_event.add_attribute("diff_cos_theta_cpTP_lhe", diff_cos_theta_cpTP, 
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
+                          "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
+
  // spin correlations I can check with probably big difference: ckk, crr, cnn, cHel, cHan, cSca, cTra, phi0, phi1, cpTTT, cLab, and maybe cpTP 
  // cLab, cHel
 // gen_tt_ll_bb.add_attribute("cHel", spin_correlation<>("cHel"), 
@@ -629,19 +737,28 @@ int main(int argc, char **argv) {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_no_cut", "", 100, 0.f, 200.f);
 
   //spin correlation
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0", "", 100, 0.f, 4.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1", "", 100, 0.f, 7.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT", "", 100, -1.f, 1.f);
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
-  
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_no_cut", "", 100, 0.f, 4.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_no_cut", "", 100, 0.f, 7.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_no_cut", "", 100, -1.f, 1.f);
+
+  // z from juan's paper  
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_no_cut", "", 100, -1.f, 1.f);
+  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen"), "cpTTT_gen_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_lhe"), "spin_cpTTT_lhe_no_cut", "", 100, -1.f, 1.f);
+  //hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTP_gen"), "cpTP_gen_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_lhe"), "spin_cpTP_lhe_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_lhe"), "t_CosTheta_lhe_no_cut", "", 100, -1.f, 1.f);
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_lhe"), "diff_cos_theta_cpTP_lhe_no_cut", "", 100, -1.f, 1.f);
+
   // let's define another histogram instance but now with acceptance cuts
   // we can, but don't need to, define the cuts in the filling function themselves
   // so the histogram instance is defined identically as above except the histogram names
@@ -670,20 +787,26 @@ int main(int argc, char **argv) {
 
  
   //spin correlation
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0", "", 100, 0.f, 4.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1", "", 100, 0.f, 7.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTp", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_cut", "", 100, 0.f, 4.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_cut", "", 100, 0.f, 7.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTp_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_cut", "", 100, -1.f, 1.f);
 
-
+  // z from Juan's paper
+  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_cut", "", 100, -1.f, 1.f);
+  //hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen"), "cpTTT_gen_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_lhe"), "spin_cpTTT_lhe_cut_cut", "", 100, -1.f, 1.f);
+  //hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTP_gen"), "cpTP_gen_cut_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_lhe"), "spin_cpTP_lhe_cut_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_lhe"), "t_CosTheta_lhe_cut", "", 100, -1.f, 1.f);
 
 
   // if the unbinned values are needed we can save them as flat trees
@@ -714,16 +837,25 @@ int main(int argc, char **argv) {
   // that captures the references to all the collections, aggregates and histograms we defined above
   // the only argument to this function is the entry number
   // one way to think about this function is that it contains the instructions on how to analyze a single event
-  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
+  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &lhe_particle, &lhe_event, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
     metadata.populate(entry);
     gen_particle.populate(entry);
+    lhe_particle.populate(entry);
 
     // since the collections serve as input to the aggregates, they need to be populated first
     gen_ttbar.populate(entry);
     gen_tt_ll_bb.populate(entry);
+    lhe_event.populate(entry);
+
+    std::cout << "cpTP LHE: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "cpTP_lhe");
+    std::cout << "cos theta LHE: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "t_CosTheta_lhe");
+    std::cout << "diff cos theta cpTP LHE: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "diff_cos_theta_cpTP_lhe");
 
     // we make an oversimplification here, considering only the events where gen_tt_ll_bb contain an element
     // this is because in the above, we have grouped the gen_ttbar and gen_tt_ll_bb histograms together
@@ -732,6 +864,8 @@ int main(int argc, char **argv) {
     // when this aggregate is empty e.g. when we have taus in the event
     if (!gen_tt_ll_bb.n_elements())
       return;
+    //if (!lhe_event.n_elements())
+    //  return;
 
     // fill the no (acceptance) cut histograms
     hist_no_cut.fill();
@@ -818,6 +952,8 @@ int main(int argc, char **argv) {
 
   // some weird string replacements to save the hist files in the run directory in the framework
   // should land in the right folder together with error, output and scripts and have the right filename
+  //
+  std::cout << "dir string: " << dir_string << std::endl;
 
   std::string dir_end = dir_string.replace(0, 36, "");
   dir_end = dir_end.substr(0, dir_end.size() - 1);
@@ -828,9 +964,9 @@ int main(int argc, char **argv) {
   
   std::string hist_dir = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/";
   
-  std::cout << "Save in: " + hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut.root") << std::endl;
-  hist_no_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut.root"));
-  hist_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_cut.root"));
+  std::cout << "Save in: " + hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_with_z.root") << std::endl;
+  hist_no_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_with_z.root"));
+  hist_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_cut_with_z.root"));
   tree_gen.save();
 
   return 0;
