@@ -226,7 +226,79 @@ struct event_t{
 // template <typename Number2>
 // bool is_gg_initial_state(const int& pdgId1, const int& pdgId2, const Number2& pz_hard_radiation);
 
+// ---- N and P ----
+template<typename Number2>
+std::complex<Number2> calc_N(event_t<Number2> event){
 
+     std::complex<Number2> N;
+
+     if (event.beta_ref_sq>0) {
+           Number2 beta_ref = sqrt(event.beta_ref_sq);
+           N = (Number2) 3. / (Number2) 8. * (Number2) (1 - event.beta_ref_sq) * (Number2) pow(event.y_top, 2) * ( (Number2) 4. - (std::complex<Number2>) event.beta_ref_sq * (std::complex<Number2>) pow(log(((1 + beta_ref) / (1 - beta_ref))) - constants<Number2>::i_cmplx * (Number2) TMath::Pi(), 2) );
+     } else {
+           Number2 auxh = 1.5 * (1 - event.beta_ref_sq) * pow(event.y_top, 2);
+           Number2 NB_real = auxh * (1 + event.beta_ref_sq * pow(asin(event.sqrt_s / 2 / constants<Number2>::m_t_ref_sq), 2));
+           Number2 NB_imag = 0.;
+           N = NB_real + NB_imag * constants<Number2>::i_cmplx;
+     }
+     return N;
+}
+
+
+template<typename Number2>
+std::complex<Number2> calc_P(event_t<Number2> event){
+
+      std::complex<Number2> P;
+      if (event.beta_ref_sq>0) {
+            Number2 beta_ref = sqrt(event.beta_ref_sq);
+            P = - (Number2) pow(event.y_top, 2) * (Number2) 3. / (Number2) 8. * (Number2) (1 - event.beta_ref_sq) * pow( (Number2) log( (1 + beta_ref) / ( 1 - beta_ref)) - constants<Number2>::i_cmplx * (Number2) TMath::Pi(), 2);
+      } else {
+            Number2 auxa = -1.5 * (1 - event.beta_ref_sq) / 4. * pow(event.y_top, 2);
+            Number2 PB_real = -4 * auxa * pow(asin(event.sqrt_s / 2 / constants<Number2>::m_t_ref_sq), 2);
+            Number2 PB_imag = 0.;
+            P = PB_real + PB_imag * constants<Number2>::i_cmplx;
+      }
+      return P;
+}
+
+
+// ---- methods without decay ----
+template<typename Number2>
+Number2 calc_resonance_scalar_without_decay(event_t<Number2> event){
+     Number2 common_factor = pow(constants<Number2>::G_F, 2) * pow(constants<Number2>::m_t_ref, 2) * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3) );
+     
+     Number2 mh_gh = event.higgs_width * event.higgs_mass;
+     std::complex<Number2> denomH = event.s - (Number2) pow(event.higgs_mass, 2) + mh_gh * constants<Number2>::i_cmplx;
+     std::complex<Number2> N = calc_N(event);
+
+     Number2 resonance = common_factor * pow(event.beta, 3) * std::norm( N / denomH ); 
+     return resonance;   
+}
+
+template<typename Number2>
+Number2 calc_resonance_pseudo_without_decay(event_t<Number2> event){
+     Number2 common_factor = pow(constants<Number2>::G_F, 2) * pow(constants<Number2>::m_t_ref, 2) * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3) );
+     
+     Number2 ma_ga = event.higgs_width * event.higgs_mass;
+     std::complex<Number2> denomA = event.s - (Number2) pow(event.higgs_mass, 2) + ma_ga * constants<Number2>::i_cmplx;
+     std::complex<Number2> P = calc_P(event);
+
+     Number2 resonance = common_factor * event.beta * std::norm( P / denomA ); 
+     return resonance;   
+}
+
+
+template<typename Number2>
+Number2 calc_QCD_without_decay(event_t<Number2> event){
+
+     Number2 factor_1 = TMath::Pi() * event.beta / ( 96 * event.s);
+     Number2 factor_2 = (7 + event.beta_sq * event.z_sq) / pow( 1 - event.beta_sq * event.z_sq, 2 ); 
+     Number2 factor_3 = event.beta_sq * (1 - pow(event.z , 4)) + 4 * pow(constants<Number2>::m_t_ref, 2) / event.s * ( 1 + event.beta_sq * pow(event.z, 4) + 2 * event.beta_sq - 2 * event.beta_sq * event.z_sq);
+     return factor_1 * factor_2 * factor_3;
+}
+
+
+// ---- old methods ----
 template<typename Number2>
 Number2 calc_qcd_interference_scalar(event_t<Number2> event){
 
@@ -628,7 +700,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       Number2 interference_pseudo = 0;
       if (event.higgs_type == higgs_type_t::scalar){
           if (event.res_int == res_int_t::resonance or event.res_int == res_int_t::both){
-              resonance_scalar = calc_resonance_scalar_new(event);
+              //resonance_scalar = calc_resonance_scalar_new(event);
+              resonance_scalar = calc_resonance_scalar_without_decay(event);
           }
           if (event.res_int == res_int_t::interference or event.res_int == res_int_t::both){
               interference_scalar = calc_interference_scalar_new(event);
@@ -636,7 +709,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       }
       else if (event.higgs_type == higgs_type_t::pseudo_scalar) {
           if (event.res_int == res_int_t::resonance or event.res_int == res_int_t::both){
-              resonance_pseudo = calc_resonance_pseudo_new(event);
+              //resonance_pseudo = calc_resonance_pseudo_new(event);
+              resonance_pseudo = calc_resonance_pseudo_without_decay(event);
           }
           if (event.res_int == res_int_t::interference or event.res_int == res_int_t::both){
               interference_pseudo = calc_interference_pseudo_new(event);
@@ -678,7 +752,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       // Number2 M_bsm = qcd_opp_gluon + no_interference_term + interference_term_scalar + interference_term_pseudo;
       // Number2 M_qcd = calc_M_qcd(event);
 
-      Number2 M_2_QCD = calc_M_2_qcd(event);
+      //Number2 M_2_QCD = calc_M_2_qcd(event);
+      Number2 M_2_QCD = calc_QCD_without_decay(event);
       Number2 M_2_bsm = resonance_scalar + interference_scalar + resonance_pseudo + interference_pseudo;
  
       std::cout << "M_2_qcd: " << M_2_QCD << std::endl;  

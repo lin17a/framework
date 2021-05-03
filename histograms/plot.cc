@@ -196,9 +196,9 @@
   std::vector<std::string> RES_INT = {"RES"}; //, "INT"};
   std::vector<std::string> r_i = {"r"}; //, "i"};
   std::vector<std::string> resonance_interference = {"resonance"}; //, "interference"};
-  std::vector<std::string> PSEUDO_SCALAR = {"SCALAR"}; // {"PSEUDO", 
-  std::vector<std::string> pseudo_scalar = {"scalar"};//{"pseudo_scalar"
-  std::vector<std::string> p_s = {"s"};//"p", 
+  std::vector<std::string> PSEUDO_SCALAR = {"PSEUDO", "SCALAR"}; 
+  std::vector<std::string> pseudo_scalar = {"pseudo_scalar", "scalar"};
+  std::vector<std::string> p_s = {"p", "s"}; 
 
 
   for (int i = 0; i < mass_width_combis.size(); i++){
@@ -206,10 +206,10 @@
   
       std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_" + mass_width_combis[i] + "_" + zeros[i]  + "_"+ RES_INT[0] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_" + mass_width_combis[i] + "_" + zeros[i] +  "_" + RES_INT[0] + "_" + PSEUDO_SCALAR[j] + "_no_cut_with_z.root";
       std::cout << "filename_generated: " << filename_generated << std::endl;
-      std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[0] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[0] + "_no_cut_after_reordering_with_spin_angles.root";
+      std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[0] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[0] + "_no_cut_after_reordering_without_decays.root";
       std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
  
-      std::string folder = mass_width_combis[i] + "_" + pseudo_scalar[j] + "_" + res_int[0] + "_generated_vs_reweighted_with_spin_angles";
+      std::string folder = mass_width_combis[i] + "_" + pseudo_scalar[j] + "_" + res_int[0] + "_generated_vs_reweighted_without_decays";
       if (mkdir(folder.c_str(), 0777) != 0){
         std::cout << "Couldn't create directory." << std::endl;
       }

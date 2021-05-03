@@ -234,7 +234,7 @@ Number2 calc_qcd_interference_scalar(event_t<Number2> event){
                                          * event.ss_factor_beta;
                break;}
           case calc_weight_version::juan_paper:{
-              Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
+              Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
               Number2 beta_z_factor_sq = beta_z_factor * beta_z_factor;
               Number2 factor_interference = 4 / 3 * pow(constants<Number2>::m_t_ref, 2) * pow(TMath::Pi(), 3) 
                                             / (pow(event.s, 2) * beta_z_factor_sq);
@@ -243,7 +243,7 @@ Number2 calc_qcd_interference_scalar(event_t<Number2> event){
               // if (event.higgs_type != higgs_type_t::scalar) {
               //     return 0;
               // } 
-              qcd_interference_scalar = factor_interference * event.beta_ref
+              qcd_interference_scalar = factor_interference * event.beta
                                        // setting N to zero
                                        // * std::norm((Number2) 1. - factor_in_norm_interference * (NB / denomH))
                                        * event.ss_factor_beta;
@@ -294,7 +294,7 @@ Number2 calc_qcd_interference_pseudo(event_t<Number2> event){
                                           * event.ss_factor_1;
              break;}
          case calc_weight_version::juan_paper:{
-             Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
+             Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
              Number2 beta_z_factor_sq = beta_z_factor * beta_z_factor;
              Number2 factor_interference = 4 / 3 * pow(constants<Number2>::m_t_ref, 2) * pow(TMath::Pi(), 3)  
                                            / (pow(event.s, 2) * beta_z_factor_sq);
@@ -303,7 +303,7 @@ Number2 calc_qcd_interference_pseudo(event_t<Number2> event){
              //if (event.higgs_type != higgs_type_t::pseudo_scalar){
              //    return 0;
              //}         
-             qcd_interference_pseudo = factor_interference * event.beta_ref
+             qcd_interference_pseudo = factor_interference * event.beta
  
                                      // setting P to zero??
                                      //  * std::norm((Number2) 1. - factor_in_norm_interference * (PB / denomA))
@@ -321,10 +321,10 @@ Number2 calc_qcd_no_interference(event_t<Number2> event){
     Number2 additional_factor_for_nointerf = 0;
     switch (event.version){ 
         case calc_weight_version::juan_paper:
-            additional_factor_for_nointerf = 8 * pow(constants<Number2>::m_t_ref, 2) * TMath::Pi() * event.beta_ref / pow(event.s, 2);
+            additional_factor_for_nointerf = 8 * pow(constants<Number2>::m_t_ref, 2) * TMath::Pi() * event.beta / pow(event.s, 2);
             break;
         case calc_weight_version::juan_code: 
-            additional_factor_for_nointerf = 1 - event.beta_ref_sq;
+            additional_factor_for_nointerf = 1 - event.beta_sq;
             break;
         default:
             break;
@@ -340,7 +340,7 @@ Number2 calc_qcd_opp_gluon(event_t<Number2> event){
     Number2 opp_gluon_qcd_term = 0;
  
     if (event.version == calc_weight_version::juan_paper){
-       opp_gluon_qcd_term = 2 * pow(event.beta_ref, 3) * TMath::Pi() / event.s * common_factor_for_M2_gg_QCD * (1 - event.z_sq) 
+       opp_gluon_qcd_term = 2 * pow(event.beta, 3) * TMath::Pi() / event.s * common_factor_for_M2_gg_QCD * (1 - event.z_sq) 
                   * event.os_factor_juan_paper;
     }
     if (event.version == calc_weight_version::juan_code){
@@ -424,7 +424,7 @@ Number2 calc_resonance_pseudo_new(event_t<Number2> event){
              break;}
          case calc_weight_version::juan_paper:{
              Number2 factor_resonance = pow(constants<Number2>::G_F, 2) * constants<Number2>::m_t_ref_sq * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3));
-             resonance_pseudo = factor_resonance * event.beta_ref * std::norm(PB / denomA) * event.ss_factor_1;
+             resonance_pseudo = factor_resonance * event.beta * std::norm(PB / denomA) * event.ss_factor_1;
              break;}
          default:
              break;
@@ -474,8 +474,8 @@ Number2 calc_interference_pseudo_new(event_t<Number2> event){
              break;}
          case calc_weight_version::juan_paper:{
              Number2 factor_interference = constants<Number2>::G_F * constants<Number2>::m_t_ref_sq / ( 48 * sqrt(2) * TMath::Pi());
-             Number2 beta_z_factor = 1 - event.beta_ref_sq * event.z_sq;
-             interference_pseudo = factor_interference * event.beta_ref / beta_z_factor * (PB / denomA).real() * event.ss_factor_1;
+             Number2 beta_z_factor = 1 - event.beta_sq * event.z_sq;
+             interference_pseudo = factor_interference * event.beta / beta_z_factor * (PB / denomA).real() * event.ss_factor_1;
              break;}
          default:
              break;
@@ -525,7 +525,7 @@ Number2 calc_resonance_scalar_new(event_t<Number2> event){
                break;}
           case calc_weight_version::juan_paper:{
               Number2 factor_resonance = pow(constants<Number2>::G_F, 2) * constants<Number2>::m_t_ref_sq * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3)); 
-              resonance_scalar = factor_resonance * pow(event.beta_ref, 3) * std::norm(NB / denomH) * event.ss_factor_beta;
+              resonance_scalar = factor_resonance * event.beta * std::norm(NB / denomH) * event.ss_factor_beta;
               break;}
           default:
               break;
@@ -575,8 +575,8 @@ Number2 calc_interference_scalar_new(event_t<Number2> event){
                break;}
           case calc_weight_version::juan_paper:{
               Number2 factor_interference = constants<Number2>::G_F * constants<Number2>::m_t_ref_sq / (48 * sqrt(2.) * TMath::Pi()); 
-              Number2 beta_z_factor = 1. - event.beta_ref_sq * event.z_sq;
-              interference_scalar = factor_interference * pow(event.beta_ref, 3) / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
+              Number2 beta_z_factor = 1. - event.beta_sq * event.z_sq;
+              interference_scalar = factor_interference * event.beta / beta_z_factor * (NB / denomH).real() * event.ss_factor_beta;
               break;}
           default:
               break;
@@ -650,8 +650,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       std::cout << "M_2_qcd: " << M_2_QCD << std::endl;  
       std::cout << "M_2_bsm: " << M_2_bsm << std::endl;  
 
-      // Number2 weight = M_2_bsm / M_2_QCD;
       Number2 weight = 1. / M_2_bsm;
+      //Number2 weight = 1. / M_2_QCD;
 
       std::cout << "weight: " << weight << std::endl;  
       
