@@ -15,6 +15,11 @@
       hist->hist->SetLineWidth(line_width);
       hist->hist->Rebin(rebin);
       hist->hist->Scale(1. / hist->hist->Integral());
+      int nbins = hist->hist->GetXaxis()->GetNbins();
+      for (int i=0; i<nbins ;i++){
+        Float_t v = hist->hist->GetBinContent(i);
+        hist->hist->SetBinContent(i, abs(v));
+    }
     } 
 
     std::vector<double_t> maxs;
@@ -25,6 +30,8 @@
     std::transform(hists->begin(), hists->end(), std::back_inserter(mins),
                    [](auto h) -> double_t { std::cout <<  std::to_string(h->hist->GetMinimum()) << "\n"; return h->hist->GetMinimum(); });
     double_t min_value = *(std::min_element(mins.begin(), mins.end()));
+
+
    
     if (min_value <= 0) {
        std::cout << "min too small" << std::endl;
@@ -85,9 +92,16 @@
        // get the first histogram from the first file
        TH1F *h1 = (TH1F *) f1->Get(hist_name.c_str());
        std::string title = hist_name;     
-
+       //size_t pos_1 = hist_name.find("_no_cut");
+       //size_t pos_2 = hist_name.find("_no_cut", pos_1 + 1);
+       //std::string attr = hist_name.substr(0, pos_1);
+       //std::string hist_name_positive = attr + "_positive";
+       //std::cout << hist_name_positive << std::endl;
+      
       // try to find histograms with the same name 
       try {
+
+          std::cout << hist_name << std::endl;
           
           // get histograms with the same attribute from the other files 
       //    TH1F *h2 = (TH1F *) f2->Get( hist_name.c_str());   
@@ -135,8 +149,9 @@
           h1->SetNameTitle(hist_name.c_str(), hist_title.c_str());
           
           TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
-          //TCanvas can("canvas", 
-          can->SetLogy();
+          //TCanvas can("canvas",
+          if (attr == "mass") 
+             can->SetLogy();
           can->cd();
              
           // draw all in the same histogram
@@ -154,7 +169,7 @@
           auto rp1 = new TRatioPlot(h1, h3);
           rp1->Draw();
           rp1->GetLowerRefYaxis()->SetTitle("generated/reweighted");
-          rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
+          rp1->GetLowerRefYaxis()->SetRangeUser(-2,2);
           //rp1->GetLowerRefXaxis()->SetTitleSize(20);
           rp1->GetXaxis()->SetLabelSize(0.015);
           //rp1->SetMinimum(-10);
@@ -192,32 +207,48 @@
 
   std::vector<std::string> mass_width_combis = { "m400_w20", "m1000_w25", "m600_w30", "m800_w20" };
   std::vector<std::string> zeros = { "00", "000", "00", "000"};
-  std::vector<std::string> res_int = {"res"}; //, "int"};
-  std::vector<std::string> RES_INT = {"RES"}; //, "INT"};
-  std::vector<std::string> r_i = {"r"}; //, "i"};
-  std::vector<std::string> resonance_interference = {"resonance"}; //, "interference"};
+  std::vector<std::string> res_int =  {"res", "int"}; //
+  std::vector<std::string> RES_INT = {"RES", "INT"}; //
+  std::vector<std::string> r_i = {"r", "i"}; //
+  std::vector<std::string> resonance_interference = {"resonance", "interference"}; //
   std::vector<std::string> PSEUDO_SCALAR = {"PSEUDO", "SCALAR"}; 
   std::vector<std::string> pseudo_scalar = {"pseudo_scalar", "scalar"};
-  std::vector<std::string> p_s = {"p", "s"}; 
+  std::vector<std::string> p_s = {"p", "s"};
+
+  std::vector<std::string> positive_negative; 
 
 
   for (int i = 0; i < mass_width_combis.size(); i++){
     for (int j = 0; j < pseudo_scalar.size(); j++){
-  
-      std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_" + mass_width_combis[i] + "_" + zeros[i]  + "_"+ RES_INT[0] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_" + mass_width_combis[i] + "_" + zeros[i] +  "_" + RES_INT[0] + "_" + PSEUDO_SCALAR[j] + "_no_cut_with_z.root";
-      std::cout << "filename_generated: " << filename_generated << std::endl;
-      std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[0] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[0] + "_no_cut_after_reordering_without_decays.root";
-      std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
+      for (int l = 0; l < res_int.size(); l++){
+
+        if (res_int[l] == "int"){
+          positive_negative = {"_positive", "_negative"}; 
+        }
+        else {
+          positive_negative = {""};
+        }
+
+        for (int k = 0; k < positive_negative.size(); k++){
  
-      std::string folder = mass_width_combis[i] + "_" + pseudo_scalar[j] + "_" + res_int[0] + "_generated_vs_reweighted_without_decays";
-      if (mkdir(folder.c_str(), 0777) != 0){
-        std::cout << "Couldn't create directory." << std::endl;
+
+          std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_" + mass_width_combis[i] + "_" + zeros[i]  + "_"+ RES_INT[l] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_" + mass_width_combis[i] + "_" + zeros[i] +  "_" + RES_INT[l] + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_with_z.root";
+          std::cout << "filename_generated: " << filename_generated << std::endl;
+          std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_running_width_paper.root";
+          //std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[l] + "_no_cut_positive_after_reordering_running_width_with_s.root";
+          std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
+ 
+          std::string folder = mass_width_combis[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_running_width_paper_generated_vs_reweighted";
+          if (mkdir(folder.c_str(), 0777) != 0){
+            std::cout << "Couldn't create directory." << std::endl;
+          }
+          
+          std::string filename_histogram = folder + "/" +  std::string("all") + std::string(".pdf");
+          std::cout << "filename_histogram: " << filename_histogram << std::endl;
+          
+          DrawHistograms(filename_generated, filename_reweighted, folder, filename_histogram, resonance_interference[l], pseudo_scalar[j], mass_width_combis[i]);
+        }
       }
-      
-      std::string filename_histogram = folder + "/" +  std::string("all") + std::string(".pdf");
-      std::cout << "filename_histogram: " << filename_histogram << std::endl;
-      
-      DrawHistograms(filename_generated, filename_reweighted, folder, filename_histogram, resonance_interference[0], pseudo_scalar[j], mass_width_combis[i]);
     }
   }
 

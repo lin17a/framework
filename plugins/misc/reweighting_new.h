@@ -87,8 +87,10 @@ struct event_t{
         Number2 s = sqrt_s * sqrt_s;
         this->s = s;
         Number2 m_t = vec_4_t.M();
+        //Number2 m_t = 172.5;
         this->m_t = m_t;
         Number2 m_tbar = vec_4_tbar.M();
+        //Number2 m_tbar = 172.5;
         this->m_tbar = m_tbar;
         Number2 beta_sq = (1 - (m_t - m_tbar) * (m_t - m_tbar) / s) * (1 - (m_t + m_tbar) * (m_t + m_tbar) / s);
         this->beta_sq = beta_sq;
@@ -101,20 +103,23 @@ struct event_t{
         }
         this->beta = beta;
         //Number2 beta = sqrt(beta_sq);
+
         //Number2 beta3 = beta*beta_sq;
         //std::cout << "top mass: " << m_t << std::endl;
         Number2 mtrefOverE = 2 * constants<Number2>::m_t_ref / sqrt_s;
         //std::cout << "square root of s: " << sqrt_s << std::endl;
         //std::cout << "mt over E: " << mtrefOverE << std::endl; 
         Number2 beta_ref_sq = 1 - mtrefOverE * mtrefOverE;
+        
+        //this->beta_ref_sq = beta_ref_sq;
         this->beta_ref_sq = beta_ref_sq;
         //std::cout << "beta squared ref: " << beta_ref_sq << std::endl;
         Number2 beta_ref = 0;
         if (beta_ref_sq > 0) {
             beta_ref = sqrt(beta_ref_sq);
         }
+        //this->beta_ref = beta_ref;
         this->beta_ref = beta_ref;
-
 
         static const TVector3 zBase(0., 0., 1.);
         TLorentzVector vec_4_t_hel = f_zmf_tt(vec_4_t, vec_4_ttbar);
@@ -267,7 +272,12 @@ template<typename Number2>
 Number2 calc_resonance_scalar_without_decay(event_t<Number2> event){
      Number2 common_factor = pow(constants<Number2>::G_F, 2) * pow(constants<Number2>::m_t_ref, 2) * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3) );
      
-     Number2 mh_gh = event.higgs_width * event.higgs_mass;
+     //Number2 mh_gh = event.higgs_width * event.higgs_mass;
+     //Number2 mh_gh = event.higgs_width * event.s / event.higgs_mass;
+     Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+     //Number2 mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+     Number2 mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+
      std::complex<Number2> denomH = event.s - (Number2) pow(event.higgs_mass, 2) + mh_gh * constants<Number2>::i_cmplx;
      std::complex<Number2> N = calc_N(event);
 
@@ -279,14 +289,17 @@ template<typename Number2>
 Number2 calc_resonance_pseudo_without_decay(event_t<Number2> event){
      Number2 common_factor = pow(constants<Number2>::G_F, 2) * pow(constants<Number2>::m_t_ref, 2) * pow(event.s, 2) / ( 1536 * pow(TMath::Pi(), 3) );
      
-     Number2 ma_ga = event.higgs_width * event.higgs_mass;
+     //Number2 ma_ga = event.higgs_width * event.higgs_mass;
+     //Number2 ma_ga = event.higgs_width * event.s / event.higgs_mass;
+     Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+     //Number2 ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
+     Number2 ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
      std::complex<Number2> denomA = event.s - (Number2) pow(event.higgs_mass, 2) + ma_ga * constants<Number2>::i_cmplx;
      std::complex<Number2> P = calc_P(event);
 
      Number2 resonance = common_factor * event.beta * std::norm( P / denomA ); 
      return resonance;   
 }
-
 
 template<typename Number2>
 Number2 calc_QCD_without_decay(event_t<Number2> event){
@@ -297,8 +310,19 @@ Number2 calc_QCD_without_decay(event_t<Number2> event){
      return factor_1 * factor_2 * factor_3;
 }
 
+template<typename Number2>
+Number2 calc_QCD_without_decay_dicus(event_t<Number2> event){
 
-// ---- old methods ----
+     Number2 factor_1 = TMath::Pi() * event.beta / ( 12 * event.s);
+     Number2 s_sq = pow(event.s, 2);
+     Number2 p1_p3 = event.s / 4 * (1. - event.beta * event.z);
+     Number2 p2_p3 = event.s / 4 * (1. + event.beta * event.z);
+     Number2 factor_2 = s_sq / ( p1_p3 * p2_p3) - 9;
+     Number2 factor_3 = pow(p1_p3, 2) / s_sq + pow(p2_p3, 2) / s_sq + constants<Number2>::m_t_ref_sq / event.s - pow(constants<Number2>::m_t_ref, 4) / ( 4 * p1_p3 * p2_p3); 
+     return factor_1 * factor_2 * factor_3;
+}
+
+
 template<typename Number2>
 Number2 calc_qcd_interference_scalar(event_t<Number2> event){
 
@@ -307,14 +331,19 @@ Number2 calc_qcd_interference_scalar(event_t<Number2> event){
      std::complex<Number2> denomH;
 
      std::complex<Number2> common_factor_for_M_H = 0.;
-     Number2 mh_gh_partial = 0.;
+     //Number2 mh_gh_partial = 0.;
      Number2 mh_gh = 0.;
-     if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
-           Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
-           mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
-     }
+    // if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
+    //       Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+    //       mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
+    // }
 
-     mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.s / event.higgs_mass;
+     Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+     //mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+     mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+
 
      std::complex<Number2> NB_real, NB_imag;
      Number2 auxh = 1.5 * (1 - event.beta_ref_sq) * pow(event.y_top, 2);
@@ -368,13 +397,17 @@ Number2 calc_qcd_interference_pseudo(event_t<Number2> event){
       std::complex<Number2> denomA;
 
       std::complex<Number2> common_factor_for_M_A = 0.;
-      Number2 ma_ga_partial = 0.;
+      //Number2 ma_ga_partial = 0.;
       Number2 ma_ga = 0.;
-      if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
-            Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
-            ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
-      }
-      ma_ga = event.higgs_mass * event.higgs_width;
+     // if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
+     //       Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+     //       ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
+     // }
+      //ma_ga = event.higgs_mass * event.higgs_width;
+      //ma_ga = event.higgs_mass * event.s / event.higgs_width;
+      Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+      //ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
+      ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
 
       std::complex<Number2> PB_real, PB_imag;
       Number2 auxa = -1.5 * (1 - event.beta_ref_sq)/ 4. * pow(event.y_top, 2);
@@ -430,7 +463,7 @@ Number2 calc_qcd_no_interference(event_t<Number2> event){
             additional_factor_for_nointerf = 8 * pow(constants<Number2>::m_t_ref, 2) * TMath::Pi() * event.beta / pow(event.s, 2);
             break;
         case calc_weight_version::juan_code: 
-            additional_factor_for_nointerf = 1 - event.beta_sq;
+            additional_factor_for_nointerf = 1 - event.beta_ref_sq;
             break;
         default:
             break;
@@ -496,13 +529,17 @@ Number2 calc_resonance_pseudo_new(event_t<Number2> event){
       std::complex<Number2> denomA;
 
       std::complex<Number2> common_factor_for_M_A = 0.;
-      Number2 ma_ga_partial = 0.;
+      //Number2 ma_ga_partial = 0.;
       Number2 ma_ga = 0.;
-      if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
-            Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
-            ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
-      }
-      ma_ga = event.higgs_mass * event.higgs_width;
+      //if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
+      //      Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+      //      ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
+      //}
+      //ma_ga = event.higgs_mass * event.higgs_width;
+      //ma_ga = event.higgs_mass * event.s / event.higgs_width;
+      Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+      //ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
+      ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
 
       std::complex<Number2> PB_real, PB_imag;
       Number2 auxa = -1.5 * (1 - event.beta_ref_sq)/ 4. * pow(event.y_top, 2);
@@ -546,13 +583,17 @@ Number2 calc_interference_pseudo_new(event_t<Number2> event){
       std::complex<Number2> denomA;
 
       std::complex<Number2> common_factor_for_M_A = 0.;
-      Number2 ma_ga_partial = 0.;
+      //Number2 ma_ga_partial = 0.;
       Number2 ma_ga = 0.;
-      if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
-            Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
-            ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
-      }
-      ma_ga = event.higgs_mass * event.higgs_width;
+      //if (event.higgs_mass > 2 * constants<Number2>::m_t_ref_sq) {
+      //      Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+      //      ma_ga_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / ( 4 * TMath::Pi() * sqrt(2.)) * beta_tdecay * pow(event.y_top, 2);
+      //}
+      //ma_ga = event.higgs_mass * event.higgs_width;
+      //ma_ga = event.higgs_mass * event.s / event.higgs_width;
+      Number2 beta_tdecay = pow(1 - 4 * constants<Number2>::m_t_ref_sq / pow(event.higgs_mass, 2) ,0.5);
+      //ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
+      ma_ga = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta_tdecay;
 
       std::complex<Number2> PB_real, PB_imag;
       Number2 auxa = -1.5 * (1 - event.beta_ref_sq)/ 4. * pow(event.y_top, 2);
@@ -597,14 +638,19 @@ Number2 calc_resonance_scalar_new(event_t<Number2> event){
      std::complex<Number2> denomH;
 
      std::complex<Number2> common_factor_for_M_H = 0.;
-     Number2 mh_gh_partial = 0.;
+     //Number2 mh_gh_partial = 0.;
      Number2 mh_gh = 0.;
-     if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
-           Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
-           mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
-     }
+    // if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
+    //       Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+    //       mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
+    // }
 
-     mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.s / event.higgs_mass;
+     Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+     //mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+     mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+
 
      std::complex<Number2> NB_real, NB_imag;
      Number2 auxh = 1.5 * (1 - event.beta_ref_sq) * pow(event.y_top, 2);
@@ -647,14 +693,18 @@ Number2 calc_interference_scalar_new(event_t<Number2> event){
      std::complex<Number2> denomH;
 
      std::complex<Number2> common_factor_for_M_H = 0.;
-     Number2 mh_gh_partial = 0.;
+     //Number2 mh_gh_partial = 0.;
      Number2 mh_gh = 0.;
-     if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
-           Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
-           mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
-     }
+     Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+     //if (event.higgs_mass > 2* constants<Number2>::m_t_ref_sq) {
+     //      Number2 beta3_tdecay = pow(1-4* pow(constants<Number2>::m_t_ref, 2) / pow(event.higgs_mass, 2), 1.5);
+     //      mh_gh_partial += 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) / (4 * TMath::Pi() * sqrt(2.)) * beta3_tdecay * pow(event.y_top, 2);
+     //}
 
-     mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.higgs_mass;
+     //mh_gh = event.higgs_width * event.s /  event.higgs_mass;
+     //mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * event.s /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
+     mh_gh = pow(event.y_top,2) * 3 * constants<Number2>::G_F * constants<Number2>::m_t_ref_sq * pow(event.higgs_mass, 2) /  (4 * TMath::Pi() * sqrt(2)) * beta3_tdecay;
 
      std::complex<Number2> NB_real, NB_imag;
      Number2 auxh = 1.5 * (1 - event.beta_ref_sq) * pow(event.y_top, 2);
@@ -700,20 +750,20 @@ Number2 weight_ggHtt(event_t<Number2> event){
       Number2 interference_pseudo = 0;
       if (event.higgs_type == higgs_type_t::scalar){
           if (event.res_int == res_int_t::resonance or event.res_int == res_int_t::both){
-              //resonance_scalar = calc_resonance_scalar_new(event);
-              resonance_scalar = calc_resonance_scalar_without_decay(event);
+              resonance_scalar = calc_resonance_scalar_new(event);
+              //resonance_scalar = calc_resonance_scalar_without_decay(event);
           }
           if (event.res_int == res_int_t::interference or event.res_int == res_int_t::both){
-              interference_scalar = calc_interference_scalar_new(event);
+              interference_scalar = - calc_interference_scalar_new(event);
           }
       }
       else if (event.higgs_type == higgs_type_t::pseudo_scalar) {
           if (event.res_int == res_int_t::resonance or event.res_int == res_int_t::both){
-              //resonance_pseudo = calc_resonance_pseudo_new(event);
-              resonance_pseudo = calc_resonance_pseudo_without_decay(event);
+              resonance_pseudo = calc_resonance_pseudo_new(event);
+              //resonance_pseudo = calc_resonance_pseudo_without_decay(event);
           }
           if (event.res_int == res_int_t::interference or event.res_int == res_int_t::both){
-              interference_pseudo = calc_interference_pseudo_new(event);
+              interference_pseudo = - calc_interference_pseudo_new(event);
           }
       }
              
@@ -752,8 +802,8 @@ Number2 weight_ggHtt(event_t<Number2> event){
       // Number2 M_bsm = qcd_opp_gluon + no_interference_term + interference_term_scalar + interference_term_pseudo;
       // Number2 M_qcd = calc_M_qcd(event);
 
-      //Number2 M_2_QCD = calc_M_2_qcd(event);
-      Number2 M_2_QCD = calc_QCD_without_decay(event);
+      Number2 M_2_QCD = calc_M_2_qcd(event);
+      //Number2 M_2_QCD = calc_QCD_without_decay(event);
       Number2 M_2_bsm = resonance_scalar + interference_scalar + resonance_pseudo + interference_pseudo;
  
       std::cout << "M_2_qcd: " << M_2_QCD << std::endl;  
