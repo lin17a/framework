@@ -719,26 +719,30 @@ int main(int argc, char **argv) {
                             if (g.get<int>("pdg")[initial[0]] == 21)
                             {
                               if (sign_eta != sign_pz) {
+                                //std::cout << "ngluon = 1 was made to ngluon = 2, first particle gluon" << std::endl;
                                 ngluon = 2;}
                               else {
+                                //std::cout << "ngluon = 1 was made to ngluon = 0, first particle gluon" << std::endl;
                                 ngluon = 0; }
                             } 
                             else
                             {
                               if (sign_eta != sign_pz) {
+                                //std::cout << "ngluon = 1 was made to ngluon = 0, second particle gluon" << std::endl;
                                 ngluon = 0; }
                               else {
+                                //std::cout << "ngluon = 1 was made to ngluon = 2, second particle gluon" << std::endl;
                                 ngluon = 2; }
                             }
                           }
                           
                           if (ngluon == 0) { 
-//                            std::cout << "lhe_event indexer ngluon == 0" << std::endl;
+                            std::cout << "lhe_event indexer ngluon == 0" << std::endl;
                             return {}; }
                         
                           if (ngluon == 2)
                           {
- //                            std::cout << "lhe_event indexer ngluon == 2" << std::endl;
+                            std::cout << "lhe_event indexer ngluon == 2" << std::endl;
                              auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
  //                            std::cout << "lhe_event indexer ngluon == 2, after top" << std::endl;
                              auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
@@ -1575,10 +1579,10 @@ int main(int argc, char **argv) {
   // z aus Juans Paper
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_no_cut", "", 100, -1.f, 1.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_cut", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_LHE_cut", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_LHE_cut_self_calc", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_LHE_cut", "", 100, -1.f, 1.f);
-  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_LHE_no_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_lhe_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_lhe_cut_self_calc", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_lhe_cut", "", 100, -1.f, 1.f);
+  hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_lhe_no_cut", "", 100, -1.f, 1.f);
 
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
@@ -1781,7 +1785,235 @@ int main(int argc, char **argv) {
 //  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "rNorm"), "spin_rNorm", "", 100, -1.f, 1.f);
 //  hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "nNorm"), "spin_nNorm", "", 100, -1.f, 1.f);
 
+  Histogram hist_positive;
 
+  hist_positive.set_weighter([&weight = metadata.get<float>("weight"), &reweighting_weight = lhe_event.get<float>("weight_float")] () { return (weight[0] * reweighting_weight[0]); });
+  //hist_positive.set_weighter([&reweighting_weight = lhe_event.get<float>("weight_float")] () { return (reweighting_weight[0]); });
+  //hist_positive.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_positive.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_positive", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  
+  // z aus Juans Paper
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_LHE_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_LHE_self_calc_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_LHE_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_LHE_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_LHE"), "diff_cos_theta_LHE_positive", "", 100, -1.f, 1.f);
+  
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_positive", "", 120, 0.f, 1200.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_positive", "", 100, -5.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_positive", "", 100, -5.f, 5.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_positive", "", 100, -5.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_positive", "", 100, -5.f, 5.f);
+  // war vorher bis 1500
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_positive", "", 120, 300.f, 600.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_positive", "", 100, 0.f, 200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_positive", "", 100, 0.f, 200.f);
+
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_positive", "", 100, 0.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_positive", "", 100, 0.f, 5.f);
+  
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_positive", "", 100, 150.f, 200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_positive", "", 100, 150.f, 200.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_positive", "", 160, 0.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_positive", "", 160, 0.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_positive", "", 100, -5.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_positive", "", 100, -5.f, 5.f);
+
+  // ttbar things
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_positive", "", 100, -4.f, 4.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_positive", "", 100, -10.f, 10.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_positive", "", 100, -1.f, 4.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_positive", "", 100, 0.f, 1.f);
+  // looks like this is pseudo rapidity as well
+  //hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_positive", "", 100, -10.f, 10.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_positive", "", 100, 0.f, 10.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_positive", "", 100, 0.f, 10.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_positive", "", 100, 0.f, 10.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_positive", "", 100, -1.f, 100.f);
+  // looks strange
+  //hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_positive", "", 100, 0.f, 100.f);
+  // m2, mag, mag2, mt, mt2 and t are always zero
+  // mag(2) and m(2) are the same
+  // I dont know what that is
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_positive", "", 100, 0.f, 500.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_positive", "", 100, 0.f, 100.f);
+  //hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_positive", "", 100, 0.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_positive", "", 100, -4.f, 4.f);
+  // plus and minus are T +/- Z and has sth to do with light cones in relativity
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_positive", "", 100, 0.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_positive", "", 100, 0.f, 500.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_positive", "", 100, -100.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_positive", "", 100, -100.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_positive", "", 100, -100.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_positive", "", 100, 0.f, 100.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_positive", "", 100, -1.f, 4.f);
+//  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_positive", "", 100, -100.f, 100.f);
+//  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_positive", "", 100, -100.f, 100.f);
+//  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_positive", "", 100, -100.f, 100.f);
+
+
+  //spin correlation
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_positive", "", 100, 0.f, 4.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_positive", "", 100, 0.f, 7.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_positive", "", 100, -1.f, 1.f);
+
+
+
+  Histogram hist_negative;
+
+  hist_negative.set_weighter([&weight = metadata.get<float>("weight"), &reweighting_weight = lhe_event.get<float>("weight_float")] () { return ( - weight[0] * reweighting_weight[0]); });
+  //hist_negative.set_weighter([&reweighting_weight = lhe_event.get<float>("weight_float")] () { return (reweighting_weight[0]); });
+  //hist_negative.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_negative.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_negative", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  
+  // z aus Juans Paper
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_LHE_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_LHE_self_calc_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_LHE_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_LHE_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_LHE"), "diff_cos_theta_LHE_negative", "", 100, -1.f, 1.f);
+  
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_negative", "", 120, 0.f, 1200.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_negative", "", 100, -5.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_negative", "", 100, -5.f, 5.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_negative", "", 100, -5.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_negative", "", 100, -5.f, 5.f);
+  // war vorher bis 1500
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_negative", "", 120, 300.f, 600.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_negative", "", 100, 0.f, 200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_negative", "", 100, 0.f, 200.f);
+
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_negative", "", 100, 0.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_negative", "", 100, 0.f, 5.f);
+  
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_negative", "", 100, 150.f, 200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_negative", "", 100, 150.f, 200.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_negative", "", 160, 0.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_negative", "", 160, 0.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_negative", "", 100, -5.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_negative", "", 100, -5.f, 5.f);
+
+  // ttbar things
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_negative", "", 100, -4.f, 4.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_negative", "", 100, -10.f, 10.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_negative", "", 100, -1.f, 4.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_negative", "", 100, 0.f, 1.f);
+  // looks like this is pseudo rapidity as well
+  //hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_negative", "", 100, -10.f, 10.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_negative", "", 100, 0.f, 10.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_negative", "", 100, 0.f, 10.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_negative", "", 100, 0.f, 10.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_negative", "", 100, -1.f, 100.f);
+  // looks strange
+  //hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_negative", "", 100, 0.f, 100.f);
+  // m2, mag, mag2, mt, mt2 and t are always zero
+  // mag(2) and m(2) are the same
+  // I dont know what that is
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_negative", "", 100, 0.f, 500.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_negative", "", 100, 0.f, 100.f);
+  //hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_negative", "", 100, 0.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_negative", "", 100, -4.f, 4.f);
+  // plus and minus are T +/- Z and has sth to do with light cones in relativity
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_negative", "", 100, 0.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_negative", "", 100, 0.f, 500.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_negative", "", 100, -100.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_negative", "", 100, -100.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_negative", "", 100, -100.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_negative", "", 100, 0.f, 100.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_negative", "", 100, -1.f, 4.f);
+//  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_negative", "", 100, -100.f, 100.f);
+//  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_negative", "", 100, -100.f, 100.f);
+//  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_negative", "", 100, -100.f, 100.f);
+
+
+  //spin correlation
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_negative", "", 100, 0.f, 4.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_negative", "", 100, 0.f, 7.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_negative", "", 100, -1.f, 1.f);
 
 //  Histogram hist_cut_juan_paper;
 //  //hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
@@ -1818,7 +2050,7 @@ int main(int argc, char **argv) {
   // that captures the references to all the collections, aggregates and histograms we defined above
   // the only argument to this function is the entry number
   // one way to think about this function is that it contains the instructions on how to analyze a single event
-  auto f_analyze = [&metadata, &lhe_particle, &lhe_event, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
+  auto f_analyze = [&metadata, &lhe_particle, &lhe_event, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &hist_positive, &hist_negative, &tree_gen] (long long entry) {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
@@ -1926,10 +2158,19 @@ int main(int argc, char **argv) {
                                                                                                   gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
                                                                                                                          passll)))).size();
 
+
     if (passllbb) {
       hist_cut.fill();
 //      hist_cut_juan_paper.fill();
       tree_gen.fill();
+    }
+    
+    auto positive_event = lhe_event.filter_greater("weight_float", 0.f);
+    if (positive_event){
+       hist_positive.fill();
+    }
+    else{
+       hist_negative.fill(); 
     }
 
 
@@ -1960,14 +2201,20 @@ int main(int argc, char **argv) {
 
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  
-  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering_without_decays");
-  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering_without_decays");
+ 
+  std::string suffix = "N_and_P_real";
+ 
+  std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, (std::string) "cut_after_reordering_" + suffix);
+  std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, (std::string) "no_cut_after_reordering_" + suffix);
+  std::string filename_positive = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, (std::string) "no_cut_positive_after_reordering_" + suffix);
+  std::string filename_negative = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_negative_after_reordering_" + suffix);
 
   std::cout << "Saving as: " << filename_cut << std::endl;
 
   hist_no_cut.save_as(filename_nocut);
   hist_cut.save_as(filename_cut);
+  hist_positive.save_as(filename_positive);
+  hist_negative.save_as(filename_negative);
   tree_gen.save();
 
   return 0;
