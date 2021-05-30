@@ -45,7 +45,7 @@
     }
  
     for (histogram *hist : *hists) { 
-      hist->hist->SetMaximum(max_value + max_value );
+      hist->hist->SetMaximum(max_value + max_value / 8);
       hist->hist->SetMinimum(min_value);
       //hist->GetYaxis()->SetRangeUser(min_value, max_value + max_value / 8);
       legend->AddEntry(hist->hist, hist->name.c_str(), "l");
@@ -211,11 +211,10 @@
           else {
             continue;
           }
-
           // defining histogram structs with a histogram, color and name to hand it all together to the SetUp function
-          histogram hist1 = {h1, "generated", kGreen-3};
+          histogram hist1 = {h1, "SM", kGreen-3};
         //  histogram hist2 = {h2, "int pseudo", kGreen+3};
-          histogram hist3 = {h3, "reweighted", kBlue+2};
+          histogram hist3 = {h3, "Resonance", kBlue+2};
           
           // add a new histogram containing the sum of ttbar and the pseudo scalar higgs histograms
           //TH1F *h_sum_res_int_pseudo = (TH1F*) h1->Clone();
@@ -272,10 +271,10 @@
           
           TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
           //TCanvas can("canvas",
-          if (attr == "mass") 
-             can->SetLogy();
-          if (hist_name == "ttbar_mass_no_cut") 
-             can->SetLogy();
+          //if (attr == "mass") 
+          //   can->SetLogy();
+          //if (hist_name == "ttbar_mass_no_cut") 
+          //   can->SetLogy();
           can->cd();
              
           
@@ -286,7 +285,7 @@
           //gStyle->SetTitleFontSize(0.7);
 
           can->Update();
-          can->Clear();
+          //can->Clear();
          
           gStyle->SetLabelSize(.02, "XY");
           //gStyle->SetTitleFontSize(.11);
@@ -295,24 +294,24 @@
           gStyle->SetOptStat(0);
  
           // add a sub pad with the ratio 
-          auto rp1 = new TRatioPlot(h1, h3);
-          rp1->Draw();
-          rp1->GetLowerRefYaxis()->SetTitle("\\frac{\\text{generated}}{\\text{reweighted}}");
-          rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
-          rp1->GetLowerRefYaxis()->SetTitleOffset(2);
-          rp1->GetLowerRefXaxis()->SetTitleOffset(2);
-          rp1->GetLowerRefYaxis()->CenterTitle(true);
-          //rp1->GetLowerRefXaxis()->SetTitleSize(20);
-          rp1->GetXaxis()->SetLabelSize(0.015);
-          //rp1->SetMinimum(-10);
-          //rp1->SetMaximum(10); 
-          can->Update();
+          //auto rp1 = new TRatioPlot(h1, h3);
+          //rp1->Draw();
+          ////rp1->GetLowerRefYaxis()->SetTitle("\\frac{\\text{generated}}{\\text{reweighted}}");
+          //rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
+          //rp1->GetLowerRefYaxis()->SetTitleOffset(2);
+          //rp1->GetLowerRefXaxis()->SetTitleOffset(2);
+          //rp1->GetLowerRefYaxis()->CenterTitle(true);
+          ////rp1->GetLowerRefXaxis()->SetTitleSize(20);
+          //rp1->GetXaxis()->SetLabelSize(0.015);
+          ////rp1->SetMinimum(-10);
+          ////rp1->SetMaximum(10); 
+          //can->Update();
 
 
           legend->Draw();
  
           // save with correct name
-          std::string filename_single_hist = folder + "/" + std::string(hist_name) + ".pdf";
+          std::string filename_single_hist = folder + "/" + std::string(hist_name) + ".tex";
           if (i == 0){
             filename_histogram = filename_histogram + "[";          
           }
@@ -323,7 +322,7 @@
           can->Print(filename_histogram.c_str(), title.c_str());
           can->SaveAs( filename_single_hist.c_str() );
           delete can;
-          delete rp1; 
+//          delete rp1; 
        }
        catch (const std::exception&) { 
            std:cout << "exception gecatcht\n"; 
@@ -347,9 +346,9 @@
   std::vector<std::string> RES_INT = {"RES"}; //, "INT"}; //
   std::vector<std::string> r_i = {"r"}; //, "i"}; //
   std::vector<std::string> resonance_interference = {"resonance"}; //, "interference"}; //
-  std::vector<std::string> PSEUDO_SCALAR = {"PSEUDO"}; //, "SCALAR"}; 
-  std::vector<std::string> pseudo_scalar = {"pseudo_scalar"}; //, "scalar"};
-  std::vector<std::string> p_s = {"p"}; //, "s"};
+  std::vector<std::string> PSEUDO_SCALAR = {"PSEUDO", "SCALAR"}; 
+  std::vector<std::string> pseudo_scalar = {"pseudo_scalar", "scalar"};
+  std::vector<std::string> p_s = {"p", "s"};
 
   std::vector<std::string> positive_negative; 
 
@@ -368,16 +367,16 @@
         for (int k = 0; k < positive_negative.size(); k++){
  
 
-          std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_"+ RES_INT[l] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + RES_INT[l] + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_madspin.root";
+          std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_"+ RES_INT[l] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + RES_INT[l] + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_with_z.root";
 
           std::cout << "filename_generated: " << filename_generated << std::endl;
 
-          //std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_code_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_code_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_juan_code_test.root";
-          std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_juan_code_test.root";
+          std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_no_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_z.root";
+          //std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_" + mass_width_combis[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_" + mass_width_combis[i]  + "_juan_paper_" + resonance_interference[l] + "_no_cut_positive_after_reordering_running_width_with_s.root";
 
           std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
  
-          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_madspin_juan_code_test_generated_vs_reweighted";
+          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_SM_vs_heavyhiggs";
           //std::string folder = "test"; 
           if (mkdir(folder.c_str(), 0777) != 0){
             std::cout << "Couldn't create directory." << std::endl;

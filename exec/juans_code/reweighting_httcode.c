@@ -1,30 +1,5 @@
-#include <complex>
-#include "TLorentzVector.h"
-
-struct HTT_Input {
-       unsigned int HIGGS_OPTION; // 0: SCALAR only; 1: PSEUDOSCALAR only; 2: BOTH
-       double MH; // mass of scalar Higgs
-       double MA; // mass of pseudo-scalar Higgs
-       double GH; // width of scalar Higgs (only used if WIDTH_OPTION<2)
-       double GA; // width of pseudoscalar Higgs (only used if WIDTH_OPTION<2)
-       double YTOP; // times the SM Httbar coupling (1/tan(beta) in 2HDM aligned scenarios); also used to determine widths for WIDTH_OPTION>=2; note that when WIDTH_OPTION<2 this parameter is interpreted as a scale factor w.r.t the effective ggH (ggA) SM Yukawa coupling, and we assume that only the H->ttbar (A->ttbar) decay channel has sizable contributions to the total H (A) width
-       unsigned int WIDTH_OPTION; // 0: fixed widths taken from GH and GA; 1: sqrt(s) running widths taken from GH and GA; 2: determine FIXED widths from YTOP; 3: RUNNING widths determined from YTOP
-       TLorentzVector P4gen_t[2]; // index 0: top; index 1: antitop
-       TLorentzVector P4gen_d[2]; // index 0: antidown-type fermion from W+ decay; index 1: down-type fermion from W- decay
-};
-
-// Reweighting gg-> H/A -> ttbar events
-// Input is an HTT_Input structure; output is the event weight
-double weight_ggHtt(const HTT_Input& httInput);
-
-// Simple code to decide whether the initial state should be gg or not
-// pdgId1 is the the PDG id of first parton, along the +Z direction
-// pdgId2 is the the PDG id of other parton, along the -Z direction
-// pz_hard_radiation is the pz of the system made of the hard radiated partons recoiling 
-bool is_gg_initial_state(const int& pdgId1, const int& pdgId2, const double& pz_hard_radiation);
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-double weight_ggHtt(const HTT_Input& httInput) {
+template <typename double>
+double weight_ggHtt(const HTT_Input<double>& httInput) {
 /*
 struct HTT_Input {
        unsigned int HIGGS_OPTION; // 0: SCALAR only; 1: PSEUDOSCALAR only; 2: BOTH
@@ -66,8 +41,8 @@ struct HTT_Input {
       double mt1 = httInput.P4gen_t[0].M();
       double mt2 = httInput.P4gen_t[1].M();
       double beta2 = (1-(mt1-mt2)*(mt1-mt2)/sqrts2)*(1-(mt1+mt2)*(mt1+mt2)/sqrts2);
-      double beta = sqrt(beta2);
-      double beta3 = beta*beta2;
+      //double beta = sqrt(beta2);
+      //double beta3 = beta*beta2;
       double mtrefOverE = 2*MT_REF/sqrts;
       double beta2Ref = 1-mtrefOverE*mtrefOverE;
 
@@ -104,7 +79,9 @@ struct HTT_Input {
       double common_factor_for_M2_gg_ss_nointerf = pi2/12*(5+9*beta2*z2)/pow(1-beta2*z2,2);
       double common_factor_for_M_gg_ss_interf = pi/sqrt(6.)/(1-beta2*z2);
 
-      const std::complex<double> i_cmplx = 1i;
+      using namespace std::literals::complex_literals;
+      using namespace std::literals;
+      const std::complex<double> i_cmplx = std::complex<double>(0., 1.L);
 
       std::complex<double> common_factor_for_M_H = 0.;
       double mh_gh_partial = 0.;
@@ -137,8 +114,8 @@ struct HTT_Input {
                   NB_real = auxh*(1+beta2Ref*pow(asin(sqrts/2/MT_REF),2));
                   NB_imag = 0.;
             }
-            std::complex<double> NB = NB_real + NB_imag*1i;
-            std::complex<double> denomH = sqrts2 - MH2_REF + mh_gh*1i;
+            std::complex<double> NB = NB_real + NB_imag*i_cmplx;
+            std::complex<double> denomH = sqrts2 - MH2_REF + mh_gh*i_cmplx;
 
             common_factor_for_M_H = NB / denomH;
             common_factor_for_M_H *= pow(sqrts2,1.5)*MT_REF*GF/6.*sqrt(3.)/4./pi;
@@ -174,8 +151,8 @@ struct HTT_Input {
                   PB_real = -4*auxa*pow(asin(sqrts/2/MT_REF),2);
                   PB_imag = 0.;
             }
-            std::complex<double> PB = PB_real + PB_imag*1i;
-            std::complex<double> denomA = sqrts2 - MA2_REF + ma_ga*1i;
+            std::complex<double> PB = PB_real + PB_imag*i_cmplx;
+            std::complex<double> denomA = sqrts2 - MA2_REF + ma_ga*i_cmplx;
 
             common_factor_for_M_A = PB / denomA;
             common_factor_for_M_A *= pow(sqrts2,1.5)*MT_REF*GF/6.*sqrt(3.)/4./pi;
@@ -244,85 +221,27 @@ struct HTT_Input {
       double ss_factor_beta = beta2 * (1+c1*c2 - s1*s2*cos(phi1-phi2));
 
       double M2_QCD = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor
-                    + common_factor_for_M2_gg_QCD*(1-beta2Ref)*(ss_factor_1+ss_factor_beta);
+                     + common_factor_for_M2_gg_QCD*(1-beta2Ref)*(ss_factor_1+ss_factor_beta);
 
       double M2 = common_factor_for_M2_gg_QCD*beta2*(1-z2)*os_factor
                 + common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta)
                 + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1
                 + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta;
+      //double M2 = common_factor_for_M2_gg_ss_nointerf*(1-beta2Ref)*(ss_factor_1+ss_factor_beta)
+      //             + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_A)*ss_factor_1
+      //             + std::norm(common_factor_for_M_gg_ss_interf*mtrefOverE-common_factor_for_M_H)*ss_factor_beta;
 
       // Final weight
       double weight = M2 / M2_QCD;
+
+      std::cout << "printf(\"M2_QCD = " << M2_QCD << "\n\");" << std::endl;
+      std::cout << "printf(\"M2_BSM = " << M2 << "\n\");" << std::endl;
+      std::cout << "printf(\"weight = " << weight << "\n\");" << std::endl;
+
       if (isnan(weight)) {
             printf("What?? weight: %.3e, M2QCD: %.3e, M2: %.3e; returning weight=0 !!\n", weight, M2_QCD, M2);
             return 0.;
       }
 
       return weight;
-};
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-bool is_gg_initial_state(const int& pdgId1, const int& pdgId2, const double& pz_hard_radiation) {
-/*
- * pdgId1 is the the PDG id of first parton, along the +Z direction
- * pdgId2 is the the PDG id of other parton, along the -Z direction
- * pz_hard_radiation is the pz of the system made of the hard radiated partons recoiling 
- *    against the ttbar system, measured in the LAB system
-*/
-      
-      // Ultra-simple assignment ito gg or qqbar for qg initial states
-      if (pdgId1==21 && pdgId2==21) {
-            // gg
-            return true;
-      } else if (abs(pdgId1)<6 && pdgId2==-pdgId1) {
-            // qqbar
-            return false;
-      } else if (pdgId1==21 || pdgId2==21) {
-            // qg
-            if ((pdgId1!=21 && pz_hard_radiation>0) || (pdgId2!=21 && pz_hard_radiation<0)) {
-                  // radiated quark more collinear with initial quark: assume it is gg
-                  return true;
-            } else {
-                  // radiated quark more collinear with initial gluon: assume it is qqbar
-                  return false;
-            }
-      } 
-
-      // If we got here then it is a rare initial state with multiple hard radiated partons: assume gg
-      return true;
-}
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-int main(int argc, char** argv){
-
-  // Test example
-  int pdgId1 = 21;
-  int pdgId2 = 21;
-  double pz_hard_radiation = 0.;
-
-  // Trivial call in this example (initial state is obviously gg)
-  bool is_gg = is_gg_initial_state(pdgId1, pdgId2, pz_hard_radiation); 
-
-  // Higgs scenario
-  HTT_Input httInput;
-  httInput.HIGGS_OPTION = 1;
-  httInput.WIDTH_OPTION = 0;
-  httInput.YTOP = 1.0;
-  httInput.MH = 1100.;
-  httInput.GH = 55.176;
-  httInput.MA = 1100.;
-  httInput.GA = 61.196;
-
-  // Kinematics in this event
-  httInput.P4gen_t[0].SetPxPyPzE(-69.524418,-10.462596,-6.732530,187.840263);
-  httInput.P4gen_t[1].SetPxPyPzE(69.524417,10.462600,-146.715157,236.626540);
-  httInput.P4gen_d[0].SetPxPyPzE(45.345146,5.737658,-33.855531,56.879699);
-  httInput.P4gen_d[1].SetPxPyPzE(-6.663232,-19.384937,-51.226455,55.175392);
-
-  // Reweight
-  double event_weight = 1.;
-  if (is_gg) event_weight = weight_ggHtt(httInput);
-
-  printf("Weight=%.3e\n",event_weight);
-  return 1;
 }

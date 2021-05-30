@@ -103,6 +103,48 @@ attr_func_type_ttbar get_attr_function(const std::function<float(TLorentzVector)
   };
 }
 
+int check_top_and_w_mass(float mass_t, float mass_tbar, 
+                         float pt_lepton, float eta_lepton, float phi_lepton, float mass_lepton, 
+                         float pt_antilepton, float eta_antilepton, float phi_antilepton, float mass_antilepton,
+                         float pt_neutrino, float eta_neutrino, float phi_neutrino, float mass_neutrino, 
+                         float pt_antineutrino, float eta_antineutrino, float phi_antineutrino, float mass_antineutrino){
+
+  TLorentzVector lepton, antilepton, neutrino, antineutrino, w_plus, w_minus;
+  lepton.SetPtEtaPhiM(pt_lepton, eta_lepton, phi_lepton, mass_lepton);
+  antilepton.SetPtEtaPhiM(pt_antilepton, eta_antilepton, phi_antilepton, mass_antilepton);
+  neutrino.SetPtEtaPhiM(pt_neutrino, eta_neutrino, phi_neutrino, mass_neutrino);
+  antineutrino.SetPtEtaPhiM(pt_antineutrino, eta_antineutrino, phi_antineutrino, mass_antineutrino);
+
+  w_minus = lepton + antineutrino;
+  w_plus = antilepton + neutrino;
+ 
+  float mass_w_minus = w_minus.M();
+  float mass_w_plus = w_plus.M();
+
+  std::cout << "w masses: " << mass_w_minus << ", " << mass_w_plus << std::endl;
+ 
+  float top_width = 1.4915;
+  float min_t_mass = 172.5 - 15 * top_width; 
+  float max_t_mass = 172.5 + 15 * top_width; 
+
+  float w_width = 2.0476; 
+  float w_mass = 80.419; 
+  float min_w_mass = w_mass - 15 * w_width;
+  float max_w_mass = w_mass + 15 * w_width;
+
+  if (mass_t < min_t_mass or mass_t > max_t_mass)
+    return 0;
+  else if (mass_tbar < min_t_mass or mass_tbar > max_t_mass)
+    return 0;
+  if (mass_w_minus < min_w_mass or mass_w_minus > max_w_mass)
+    return 0;
+  else if (mass_w_plus < min_w_mass or mass_w_plus > max_w_mass)
+    return 0;
+  else 
+    return 1;
+}
+
+
 // declare in advance a few functions we will need in the analysis
 float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
                             float pt2, float eta2, float phi2, float mass2)
@@ -386,7 +428,7 @@ int main(int argc, char **argv) {
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_new_nanoaod/root_files/");
+  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_new_nanoaod_madspin/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -613,7 +655,7 @@ int main(int argc, char **argv) {
   lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
   lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
 
-  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle);
+  Aggregate lhe_event("lhe_event", 22, 1, gen_particle, gen_particle, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
 
 //  std::cout << "before lhe_indexer" << std::endl;
 
@@ -621,8 +663,8 @@ int main(int argc, char **argv) {
   //  this is done by providing a function, whose arguments are references to the groups
   //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
-                       -> std::vector<std::array<int, 4>> {
+  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4, const Group<boolean, int, float, double> &g5, const Group<boolean, int, float, double> &g6)
+                       -> std::vector<std::array<int, 6>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
                           // list of currently supported filter operations are in the group header file
@@ -758,10 +800,18 @@ int main(int argc, char **argv) {
                              //auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
                              //int empty = 0;
 //                             std::cout << "top size:" << top.size() << std::endl;
-                             if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1) {
+                             
+                             auto neutrino = merge(g5.filter_equal("pdg", 12), g5.filter_equal("pdg", 14), g5.filter_equal("pdg", 16));
+                             auto antineutrino = merge(g6.filter_equal("pdg", -12), g6.filter_equal("pdg", -14), g6.filter_equal("pdg", -16));
+
+			     if (neutrino.size() == 0 or antineutrino.size() == 0){
+                               std::cout << "no w bosons" << std::endl;
+                             }
+                             
+                             if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1 or neutrino.size() != 1 or antineutrino.size() != 1) {
                                return{};}
                              else {std::cout << "es geht!!" << std::endl;}
-                             return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+                             return {{top[0], antitop[0], lepton[0], antilepton[0], neutrino[0], antineutrino[0]}};
                           }
 //                          std::cout << "lhe_event indexer end" << std::endl;
 
@@ -777,13 +827,21 @@ int main(int argc, char **argv) {
   // be sure to include all the collections in the call, as step-wise association is currently not supported
   dat.associate(metadata, gen_particle, lhe_particle);
   
-  //calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
-  //higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
-  //res_int_t res_int = res_int_t::both;
-  //float mass = 400;
-  //float width = 20;
+
 
   lhe_event.add_attribute("weight_float", calculate_weight<float,float>(calc_weight_variant, higgs_type, mass, width, res_int), 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+
+  lhe_event.add_attribute("qcd_me", calculate_qcd<float,float>(calc_weight_variant, higgs_type, mass, width, res_int), 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+  
+  lhe_event.add_attribute("bsm_me", calculate_bsm<float,float>(calc_weight_variant, higgs_type, mass, width, res_int), 
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
@@ -795,6 +853,11 @@ int main(int argc, char **argv) {
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
                              "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
   
+  //lhe_event.transform_attribute("weight_float_trans", 
+  //                                 [] (float qcd_me, float bsm_me ) -> float {
+  //                                   return bsm_me / qcd_me;
+  //                                 }, "qcd_me", "bsm_me");
+
 //  lhe_event.add_attribute("weight_juan_code_float", calculate_weight<float,float>(calc_weight_version::juan_code, higgs_type), 
 //                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
 //                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
@@ -833,6 +896,12 @@ int main(int argc, char **argv) {
   
   lhe_event.add_attribute("diff_cos_theta_cpTP_LHE", diff_cos_theta_cpTP, "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
                                                                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass");
+
+  lhe_event.add_attribute("top_and_w_mass_okay", check_top_and_w_mass, "gen_particle::default_mass", "gen_particle::default_mass", 
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
 
   // now we move to the case of attributes that are well-defined only for some selection of elements from the collections
   // for example, the invariant mass of the system of final top quark pair is relevant only for gen_particle with attribute dileptonic_ttbar == 1 or 6
@@ -1328,7 +1397,8 @@ int main(int argc, char **argv) {
   // if no weighter is defined, histograms are filled with weight 1
   //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &reweighting_weight = lhe_event.get<float>("weight_float")] () { return (weight[0] * reweighting_weight[0]); });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &reweighting_weight = lhe_event.get<float>("weight_float")] () { return (weight[0] * reweighting_weight[0] ); });
+  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &reweighting_weight = lhe_event.get<float>("weight_float"), &top_and_w_mass_okay = lhe_event.get<int>("top_and_w_mass_okay")] () { return (weight[0] * reweighting_weight[0] * top_and_w_mass_okay[0]); });
   //hist_no_cut.set_weighter([&reweighting_weight = lhe_event.get<float>("weight_float")] () { return (reweighting_weight[0]); });
   //hist_no_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
 
@@ -1351,6 +1421,7 @@ int main(int argc, char **argv) {
   // and having to write out the filling function every time can be cumbersome
   // so in the plugins some utility functions are provided for these commonly used functions
   
+
   // z aus Juans Paper
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_no_cut", "", 100, -1.f, 1.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_no_cut", "", 100, -1.f, 1.f);
@@ -2015,6 +2086,242 @@ int main(int argc, char **argv) {
   hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_negative", "", 100, -1.f, 1.f);
   hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_negative", "", 100, -1.f, 1.f);
 
+
+
+  Histogram hist_qcd;
+
+  hist_qcd.set_weighter([&weight = metadata.get<float>("weight"), &qcd_weight = lhe_event.get<float>("qcd_me")] () { return ( weight[0] * qcd_weight[0]); });
+  //hist_qcd.set_weighter([&reweighting_weight = lhe_event.get<float>("weight_float")] () { return (reweighting_weight[0]); });
+  //hist_qcd.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_qcd.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_qcd", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  
+  // z aus Juans Paper
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_LHE_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_LHE_self_calc_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_LHE_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_LHE_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_LHE"), "diff_cos_theta_LHE_qcd", "", 100, -1.f, 1.f);
+  
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_qcd", "", 120, 0.f, 1200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_qcd", "", 120, 0.f, 1200.f);
+
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_qcd", "", 100, 0.f, 400.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_qcd", "", 100, -5.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_qcd", "", 100, 0.f, 400.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_qcd", "", 100, -5.f, 5.f);
+
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_qcd", "", 100, 0.f, 400.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_qcd", "", 100, -5.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_qcd", "", 100, 0.f, 400.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_qcd", "", 100, -5.f, 5.f);
+  // war vorher bis 1500
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_qcd", "", 120, 300.f, 600.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_qcd", "", 120, 0.f, 1200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_qcd", "", 120, 0.f, 1200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_qcd", "", 120, 0.f, 1200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_qcd", "", 120, 0.f, 1200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_qcd", "", 100, 0.f, 200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_qcd", "", 100, 0.f, 200.f);
+
+
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_qcd", "", 100, 0.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_qcd", "", 100, 0.f, 5.f);
+  
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_qcd", "", 100, 150.f, 200.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_qcd", "", 100, 150.f, 200.f);
+
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_qcd", "", 160, 0.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_qcd", "", 160, 0.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_qcd", "", 100, -5.f, 5.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_qcd", "", 100, -5.f, 5.f);
+
+  // ttbar things
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_qcd", "", 100, -4.f, 4.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_qcd", "", 100, -10.f, 10.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_qcd", "", 100, -1.f, 4.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_qcd", "", 100, 0.f, 1.f);
+  // looks like this is pseudo rapidity as well
+  //hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_qcd", "", 100, -10.f, 10.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_qcd", "", 100, 0.f, 10.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_qcd", "", 100, 0.f, 10.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_qcd", "", 100, 0.f, 10.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_qcd", "", 100, -1.f, 100.f);
+  // looks strange
+  //hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_qcd", "", 100, 0.f, 100.f);
+  // m2, mag, mag2, mt, mt2 and t are always zero
+  // mag(2) and m(2) are the same
+  // I dont know what that is
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_qcd", "", 100, 0.f, 500.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_qcd", "", 100, 0.f, 100.f);
+  //hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_qcd", "", 100, 0.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_qcd", "", 100, -4.f, 4.f);
+  // plus and minus are T +/- Z and has sth to do with light cones in relativity
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_qcd", "", 100, 0.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_qcd", "", 100, 0.f, 500.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_qcd", "", 100, -100.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_qcd", "", 100, -100.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_qcd", "", 100, -100.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_qcd", "", 100, 0.f, 100.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_qcd", "", 100, -1.f, 4.f);
+//  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_qcd", "", 100, -100.f, 100.f);
+//  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_qcd", "", 100, -100.f, 100.f);
+//  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_qcd", "", 100, -100.f, 100.f);
+
+
+  //spin correlation
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_qcd", "", 100, 0.f, 4.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_qcd", "", 100, 0.f, 7.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_qcd", "", 100, -1.f, 1.f);
+  hist_qcd.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_qcd", "", 100, -1.f, 1.f);
+
+
+
+  Histogram hist_bsm;
+
+  hist_bsm.set_weighter([&weight = metadata.get<float>("weight"), &bsm_weight = lhe_event.get<float>("bsm_me")] () { return ( weight[0] * bsm_weight[0]); });
+  //hist_bsm.set_weighter([&reweighting_weight = lhe_event.get<float>("weight_float")] () { return (reweighting_weight[0]); });
+  //hist_bsm.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_bsm.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_bsm", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  
+  // z aus Juans Paper
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen_self_calc"), "cpTTT_gen_self_calc_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE"), "cpTTT_LHE_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_LHE_self_calc"), "cpTTT_LHE_self_calc_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_LHE"), "cpTP_LHE_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_LHE"), "t_CosTheta_LHE_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_LHE"), "diff_cos_theta_LHE_bsm", "", 100, -1.f, 1.f);
+  
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_bsm", "", 120, 0.f, 1200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_bsm", "", 120, 0.f, 1200.f);
+
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_bsm", "", 100, 0.f, 400.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_bsm", "", 100, -5.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_bsm", "", 100, 0.f, 400.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_bsm", "", 100, -5.f, 5.f);
+
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_bsm", "", 100, 0.f, 400.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_bsm", "", 100, -5.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_bsm", "", 100, 0.f, 400.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_bsm", "", 100, -5.f, 5.f);
+  // war vorher bis 1500
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_bsm", "", 120, 300.f, 600.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_bsm", "", 120, 0.f, 1200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_bsm", "", 120, 0.f, 1200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_bsm", "", 120, 0.f, 1200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_bsm", "", 120, 0.f, 1200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_bsm", "", 100, 0.f, 200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_bsm", "", 100, 0.f, 200.f);
+
+
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi"), "llbar_phi_bsm", "", 100, 0.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_phi_diff"), "llbar_phi_diff_bsm", "", 100, 0.f, 5.f);
+  
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_mass"), "top_mass_bsm", "", 100, 150.f, 200.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_mass"), "antitop_mass_bsm", "", 100, 150.f, 200.f);
+
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_phi"), "top_phi_bsm", "", 160, 0.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_phi"), "antitop_phi_bsm", "", 160, 0.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "top_eta"), "top_eta_bsm", "", 100, -5.f, 5.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "antitop_eta"), "antitop_eta_bsm", "", 100, -5.f, 5.f);
+
+  // ttbar things
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rapidity"), "ttbar_rapidity_bsm", "", 100, -4.f, 4.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pseudo_rapidity"), "ttbar_pseudo_rapidity_bsm", "", 100, -10.f, 10.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_angle"), "ttbar_angle_bsm", "", 100, -1.f, 4.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_beta"), "ttbar_beta_bsm", "", 100, 0.f, 1.f);
+  // looks like this is pseudo rapidity as well
+  //hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_eta"), "ttbar_eta_bsm", "", 100, -10.f, 10.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_gamma"), "ttbar_gamma_bsm", "", 100, 0.f, 10.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_e"), "ttbar_gamma_bsm", "", 100, 0.f, 10.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_energy"), "ttbar_gamma_bsm", "", 100, 0.f, 10.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et"), "ttbar_et_bsm", "", 100, -1.f, 100.f);
+  // looks strange
+  //hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_et2"), "ttbar_et2_bsm", "", 100, 0.f, 100.f);
+  // m2, mag, mag2, mt, mt2 and t are always zero
+  // mag(2) and m(2) are the same
+  // I dont know what that is
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_p"), "ttbar_p_bsm", "", 100, 0.f, 500.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp"), "ttbar_perp_bsm", "", 100, 0.f, 100.f);
+  //hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_perp2"), "ttbar_perp2_bsm", "", 100, 0.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_phi"), "ttbar_phi_bsm", "", 100, -4.f, 4.f);
+  // plus and minus are T +/- Z and has sth to do with light cones in relativity
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_plus"), "ttbar_plus_bsm", "", 100, 0.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_minus"), "ttbar_minus_bsm", "", 100, 0.f, 500.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_px"), "ttbar_px_bsm", "", 100, -100.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_py"), "ttbar_py_bsm", "", 100, -100.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pz"), "ttbar_pz_bsm", "", 100, -100.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_rho"), "ttbar_rho_bsm", "", 100, 0.f, 100.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_theta"), "ttbar_theta_bsm", "", 100, -1.f, 4.f);
+//  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_bsm", "", 100, -100.f, 100.f);
+//  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_bsm", "", 100, -100.f, 100.f);
+//  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_bsm", "", 100, -100.f, 100.f);
+
+
+  //spin correlation
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_bsm", "", 100, 0.f, 4.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_bsm", "", 100, 0.f, 7.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_bsm", "", 100, -1.f, 1.f);
+  hist_bsm.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_bsm", "", 100, -1.f, 1.f);
+
+
+
+
+
 //  Histogram hist_cut_juan_paper;
 //  //hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
 //  hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight"), &weight_new =lhe_event.get<float>("weight_juan_paper_float")] () { return (weight[0] * weight_new[0]); });
@@ -2082,12 +2389,12 @@ int main(int argc, char **argv) {
     lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "cpTP_LHE");
     std::cout << "t cos theta LHE: ";
     lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "t_CosTheta_LHE");
-    std::cout << "cos theta - cpTP LHE: ";
-    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "diff_cos_theta_cpTP_LHE");
-    std::cout << "cpTP gen: ";
-    gen_tt_ll_bb.iterate(printer_normal, gen_tt_ll_bb.ref_to_indices(), "cpTP");
-    std::cout << "t cos theta gen: ";
-    gen_ttbar.iterate(printer_normal, gen_ttbar.ref_to_indices(), "t_CosTheta");
+    std::cout << "top mass okay: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "top_and_w_mass_okay");
+    std::cout << "top mass: ";
+    gen_ttbar.iterate(printer_normal, gen_ttbar.ref_to_indices(), "top_mass");
+    std::cout << "antitop mass: ";
+    gen_ttbar.iterate(printer_normal, gen_ttbar.ref_to_indices(), "antitop_mass");
 
     //std::cout << "normal * double: " << metadata.get<float>("weight") * lhe_event.get<float>("weight_float") << std::endl;
 
@@ -2202,7 +2509,7 @@ int main(int argc, char **argv) {
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
  
-  std::string suffix = "N_and_P_real";
+  std::string suffix = "with_madspin_juan_code_test_qcd_only_pseudo";
  
   std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, (std::string) "cut_after_reordering_" + suffix);
   std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, (std::string) "no_cut_after_reordering_" + suffix);

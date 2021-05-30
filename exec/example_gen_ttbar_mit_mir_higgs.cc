@@ -53,6 +53,47 @@ float system_invariant_mass(float pt1, float eta1, float phi1, float mass1,
   return (p1 + p2).M();
 }
 
+int check_top_and_w_mass(float mass_t, float mass_tbar, 
+                         float pt_lepton, float eta_lepton, float phi_lepton, float mass_lepton, 
+                         float pt_antilepton, float eta_antilepton, float phi_antilepton, float mass_antilepton,
+                         float pt_neutrino, float eta_neutrino, float phi_neutrino, float mass_neutrino, 
+                         float pt_antineutrino, float eta_antineutrino, float phi_antineutrino, float mass_antineutrino){
+
+  TLorentzVector lepton, antilepton, neutrino, antineutrino, w_plus, w_minus;
+  lepton.SetPtEtaPhiM(pt_lepton, eta_lepton, phi_lepton, mass_lepton);
+  antilepton.SetPtEtaPhiM(pt_antilepton, eta_antilepton, phi_antilepton, mass_antilepton);
+  neutrino.SetPtEtaPhiM(pt_neutrino, eta_neutrino, phi_neutrino, mass_neutrino);
+  antineutrino.SetPtEtaPhiM(pt_antineutrino, eta_antineutrino, phi_antineutrino, mass_antineutrino);
+
+  w_minus = lepton + antineutrino;
+  w_plus = antilepton + neutrino;
+ 
+  float mass_w_minus = w_minus.M();
+  float mass_w_plus = w_plus.M();
+
+  std::cout << "w masses: " << mass_w_minus << ", " << mass_w_plus << std::endl;
+ 
+  float top_width = 1.4915;
+  float min_t_mass = 172.5 - 15 * top_width; 
+  float max_t_mass = 172.5 + 15 * top_width; 
+
+  float w_width = 2.0476; 
+  float w_mass = 80.419; 
+  float min_w_mass = w_mass - 15 * w_width;
+  float max_w_mass = w_mass + 15 * w_width;
+
+  if (mass_t < min_t_mass or mass_t > max_t_mass)
+    return 0;
+  else if (mass_tbar < min_t_mass or mass_tbar > max_t_mass)
+    return 0;
+  if (mass_w_minus < min_w_mass or mass_w_minus > max_w_mass)
+    return 0;
+  else if (mass_w_plus < min_w_mass or mass_w_plus > max_w_mass)
+    return 0;
+  else 
+    return 1;
+}
+
 float pt_vector_sum(float pt1, float phi1, float pt2, float phi2)
 {
   float px1 = pt1 * std::cos(phi1), px2 = pt2 * std::cos(phi2);
@@ -376,14 +417,14 @@ int main(int argc, char **argv) {
   lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
 //  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
 
-  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle);
+  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle, lhe_particle, lhe_particle);
 
   //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
   //  this is done by providing a function, whose arguments are references to the groups
   //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   //  the first argument is identified with the first group given to the aggregate constructor and so on
-  lhe_event.set_indexer([] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
-                       -> std::vector<std::array<int, 4>> {
+  lhe_event.set_indexer([] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4, const Group<boolean, int, float, double> &g5, const Group<boolean, int, float, double> &g6)
+                       -> std::vector<std::array<int, 6>> {
     auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
     auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
     auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
@@ -393,11 +434,14 @@ int main(int argc, char **argv) {
     std::cout << "antitop size: " << antitop.size() << std::endl;
     std::cout << "lepton size: " << lepton.size() << std::endl;
     std::cout << "antilepton size: " << antilepton.size() << std::endl;
-    if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1){
+    auto neutrino = merge(g5.filter_equal("pdg", 12), g5.filter_equal("pdg", 14), g5.filter_equal("pdg", 16));
+    auto antineutrino = merge(g6.filter_equal("pdg", -12), g6.filter_equal("pdg", -14), g6.filter_equal("pdg", -16));
+
+    if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1 or neutrino.size() != 1 or antineutrino.size() != 1){
        std::cout << "number of particles is wrong" << std::endl;
        return {};
     }
-    return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+    return {{top[0], antitop[0], lepton[0], antilepton[0], neutrino[0], antineutrino[0]}};
   });
   
 
@@ -476,6 +520,10 @@ int main(int argc, char **argv) {
   // do the same thing for phi
   gen_ttbar.add_attribute("top_phi", return_first, "gen_particle::phi", "gen_particle::phi");
   gen_ttbar.add_attribute("antitop_phi", return_second, "gen_particle::phi", "gen_particle::phi");
+
+  // do the same thing for mass
+  gen_ttbar.add_attribute("top_mass", return_first, "gen_particle::mass", "gen_particle::mass");
+  gen_ttbar.add_attribute("antitop_mass", return_second, "gen_particle::mass", "gen_particle::mass");
 
   // and redundantly obtain the ttbar pt again
   gen_ttbar.transform_attribute("ttbar_pt_transform", pt_vector_sum, 
@@ -675,6 +723,12 @@ int main(int argc, char **argv) {
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass",
                           "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::mass");
 
+  lhe_event.add_attribute("top_and_w_masses_okay", check_top_and_w_mass, "gen_particle::mass", "gen_particle::mass", 
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                                                                  "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+
  // spin correlations I can check with probably big difference: ckk, crr, cnn, cHel, cHan, cSca, cTra, phi0, phi1, cpTTT, cLab, and maybe cpTP 
  // cLab, cHel
 // gen_tt_ll_bb.add_attribute("cHel", spin_correlation<>("cHel"), 
@@ -695,7 +749,8 @@ int main(int argc, char **argv) {
   // here we only take the per-event weight from the metadata collection
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0];});
+  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &top_and_w_masses_okay = lhe_event.get<int>("top_and_w_masses_okay")] () { return weight[0] * top_and_w_masses_okay[0]; });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -809,6 +864,149 @@ int main(int argc, char **argv) {
   hist_cut.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_lhe"), "t_CosTheta_lhe_cut", "", 100, -1.f, 1.f);
 
 
+  Histogram hist_positive;
+
+  // we define an argument-less impure function that computes the weight for each histogram entry
+  // here we only take the per-event weight from the metadata collection
+  // we can see here that internally a non-array collection is in fact an array collection of size 1
+  // if no weighter is defined, histograms are filled with weight 1
+  hist_positive.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_positive.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_positive", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_positive", "", 120, 0.f, 1200.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_positive", "", 100, -5.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_positive", "", 100, -5.f, 5.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_positive", "", 100, -5.f, 5.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_positive", "", 100, 0.f, 400.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_positive", "", 100, -5.f, 5.f);
+
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_positive", "", 120, 300.f, 1500.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_positive", "", 120, 0.f, 1200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_positive", "", 100, 0.f, 200.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_positive", "", 100, 0.f, 200.f);
+
+  //spin correlation
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_positive", "", 100, 0.f, 4.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_positive", "", 100, 0.f, 7.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_positive", "", 100, -1.f, 1.f);
+
+  // z from juan's paper  
+  hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_positive", "", 100, -1.f, 1.f);
+  //hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen"), "cpTTT_gen_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_lhe"), "spin_cpTTT_lhe_positive", "", 100, -1.f, 1.f);
+  //hist_positive.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTP_gen"), "cpTP_gen_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_lhe"), "spin_cpTP_lhe_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_lhe"), "t_CosTheta_lhe_positive", "", 100, -1.f, 1.f);
+  hist_positive.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_lhe"), "diff_cos_theta_cpTP_lhe_positive", "", 100, -1.f, 1.f);
+
+  Histogram hist_negative;
+
+  // we define an argument-less impure function that computes the weight for each histogram entry
+  // here we only take the per-event weight from the metadata collection
+  // we can see here that internally a non-array collection is in fact an array collection of size 1
+  // if no weighter is defined, histograms are filled with weight 1
+  hist_negative.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+
+  // next we define the histograms, where the histogram type are given inside the <> bracket
+  // all histogram types supported by ROOT are supported
+  // the first argument is an impure function instructing how the histograms should be filled
+  // the function takes two arguments, a histogram pointer and a weight
+  // the remaining arguments are those expected by ROOT histogram constructor of the type being used
+  hist_negative.make_histogram<TH1F>([&gen_ttbar] (TH1F *hist, double weight) {
+      // do not fill if the aggregate has no elements
+      if (gen_ttbar.n_elements() != 1)
+        return;
+
+      auto &mass = gen_ttbar.get<float>("ttbar_mass");
+      hist->Fill(mass[0], weight);
+    }, "ttbar_mass_negative", "", 120, 300.f, 1500.f);
+
+  // in many cases we will be filling the histograms in similar ways
+  // e.g. check for presence, and if yes, fill the first/all elements
+  // and having to write out the filling function every time can be cumbersome
+  // so in the plugins some utility functions are provided for these commonly used functions
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt_transform"), "ttbar_pt_transform_negative", "", 120, 0.f, 1200.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_pt"), "lepton_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lepton_eta"), "lepton_eta_negative", "", 100, -5.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_pt"), "antilepton_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antilepton_eta"), "antilepton_eta_negative", "", 100, -5.f, 5.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_pt"), "bottom_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_negative", "", 100, -5.f, 5.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_negative", "", 100, 0.f, 400.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_negative", "", 100, -5.f, 5.f);
+
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_negative", "", 120, 300.f, 1500.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarbbar_mass"), "lbarbbar_mass_negative", "", 120, 0.f, 1200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbbar_mass"), "lbbar_mass_negative", "", 100, 0.f, 200.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lbarb_mass"), "lbarb_mass_negative", "", 100, 0.f, 200.f);
+
+  //spin correlation
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cLab"), "spin_cLab_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "crr"), "spin_crr_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cnn"), "spin_cnn_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ckk"), "spin_ckk_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cSca"), "spin_cSca_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cTra"), "spin_cTra_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi0"), "spin_phi0_negative", "", 100, 0.f, 4.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "phi1"), "spin_phi1_negative", "", 100, 0.f, 7.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTP"), "spin_cpTP_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cpTTT"), "spin_cpTTT_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan_negative", "", 100, -1.f, 1.f);
+
+  // z from juan's paper  
+  hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "t_CosTheta"), "t_CosTheta_negative", "", 100, -1.f, 1.f);
+  //hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTTT_gen"), "cpTTT_gen_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTTT_lhe"), "spin_cpTTT_lhe_negative", "", 100, -1.f, 1.f);
+  //hist_negative.make_histogram<TH1F>(filler_first_of(gen_ttbar, "cpTP_gen"), "cpTP_gen_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "cpTP_lhe"), "spin_cpTP_lhe_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "t_CosTheta_lhe"), "t_CosTheta_lhe_negative", "", 100, -1.f, 1.f);
+  hist_negative.make_histogram<TH1F>(filler_first_of(lhe_event, "diff_cos_theta_cpTP_lhe"), "diff_cos_theta_cpTP_lhe_negative", "", 100, -1.f, 1.f);
+
+
+
+
   // if the unbinned values are needed we can save them as flat trees
   // just like the histogram object we start by instantiating the object
   // args are the file and tree names we want to save out
@@ -837,7 +1035,7 @@ int main(int argc, char **argv) {
   // that captures the references to all the collections, aggregates and histograms we defined above
   // the only argument to this function is the entry number
   // one way to think about this function is that it contains the instructions on how to analyze a single event
-  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &lhe_particle, &lhe_event, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
+  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &lhe_particle, &lhe_event, &hist_no_cut, &hist_cut, &hist_positive, &hist_negative, &tree_gen] (long long entry) {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
@@ -867,8 +1065,24 @@ int main(int argc, char **argv) {
     //if (!lhe_event.n_elements())
     //  return;
 
-    // fill the no (acceptance) cut histograms
-    hist_no_cut.fill();
+   hist_no_cut.fill();
+
+
+   // top mass cut dinge
+   // float top_width = 1.4915;
+   // float min_mass = 172.5 - 15 * top_width;
+   // float max_mass = 172.5 + 15 * top_width;
+
+   // auto pass_top_mass = gen_ttbar.filter_in("top_mass", min_mass, max_mass, 
+   //                        gen_ttbar.filter_in("antitop_mass", min_mass, max_mass)); 
+   // // fill the no (acceptance) cut histograms
+   // if (pass_top_mass){
+   //   std::cout << "top mass: ";
+   //   gen_ttbar.iterate(printer_normal, gen_ttbar.ref_to_indices(), "top_mass");
+   //   std::cout << "anti top mass: ";
+   //   gen_ttbar.iterate(printer_normal, gen_ttbar.ref_to_indices(), "antitop_mass");
+   //   hist_no_cut.fill();
+   // }
 
     // as promised above we would like some acceptance cuts 
     // which we impose on the charged leptons and bottom quarks
@@ -934,6 +1148,15 @@ int main(int argc, char **argv) {
       tree_gen.fill();
     }
 
+    auto positive_event = metadata.filter_greater("weight", 0.f);
+    if (positive_event){
+       std::cout << "event is positive" << std::endl;
+       hist_positive.fill();
+    }
+    else{
+       std::cout << "event is negative" << std::endl;
+       hist_negative.fill(); 
+    }
 
   };
 
@@ -963,10 +1186,14 @@ int main(int argc, char **argv) {
   hist_name = hist_name.substr(0, hist_name.size() - 1);
   
   std::string hist_dir = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/";
-  
-  std::cout << "Save in: " + hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_with_z.root") << std::endl;
-  hist_no_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_with_z.root"));
-  hist_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_cut_with_z.root"));
+  std::string suffix = "madspin"; 
+
+ 
+  std::cout << "Save in: " + hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_") + suffix + ".root" << std::endl;
+  hist_no_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_") + suffix + ".root");
+  hist_cut.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_cut_") + suffix + ".root");
+  hist_positive.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_positive_") + suffix + ".root");
+  hist_negative.save_as(hist_dir + dir_end + "_generated/" + hist_name + std::string("_no_cut_negative_") + suffix + ".root");
   tree_gen.save();
 
   return 0;

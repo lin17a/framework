@@ -16,12 +16,71 @@
 #include "misc/function_util.h"
 #include "misc/numeric_vector.h"
 #include "misc/spin_correlation.h"
+#include "misc/reweighting.h"
 
 // things I included
 #include <dirent.h>
 #include <string>
+#include <sstream>
 // this one is to add light weight paticle masses, if it would work
 // #include "./misc/constants.h"
+
+
+// enum to string things
+
+
+
+//std::string calc_weight_version_to_str(calc_weight_version version){
+//using cwv = calc_weight_version;
+//  switch ( version )
+//      {
+//         case cwv::juan_paper:
+//            return "juan_paper";
+//         case cwv::juan_code:
+//            return "juan_code";
+//         case cwv::juan_paper_different_M2:
+//            return "juan_paper_different_M2";
+//         default:
+//            return "undefined_version";
+//      }
+//}
+//
+//std::string higgs_type_to_str(higgs_type_t type){
+//using ht = higgs_type_t;
+//  switch ( type )
+//      {
+//         case ht::scalar:
+//            return "scalar";
+//         case ht::pseudo_scalar:
+//            return "pseudo_scalar";
+//         default:
+//            return "undefined_higgs_type";
+//      }
+//}
+//
+//std::string res_int_to_str(res_int_t res_int){
+////using ri = res_int;
+//  switch ( res_int )
+//      {
+//         case res_int_t::resonance:
+//            return "resonance";
+//         case res_int_t::interference:
+//            return "interference";
+//         case res_int_t::both:
+//            return "res_int";
+//         default:
+//            return "undefined_res_int_type";
+//      }
+//}
+//
+//std::string create_filename(std::string custom_praefix, higgs_type_t higgs_type, float mass, float width, calc_weight_version calc_weight_version, res_int_t res_int, std::string cut){
+//  std::string calc_weight_version_str = calc_weight_version_to_str(calc_weight_version);
+//  std::string higgs_type_str = higgs_type_to_str(higgs_type);
+//  std::string res_int_str = res_int_to_str(res_int);
+//  std::string filename = custom_praefix + "_" + higgs_type_str + "_m" + std::to_string(mass) + "_w" + std::to_string(width) + "_" + calc_weight_version_str + "_" + res_int_str + "_" + cut + ".root";
+//  return filename;
+//}
+
 // 
 // cool things from Ruben to make the add_attribute shorter
  using attr_func_type_ttbar = const std::function<float(float,float,float,float,float,float,float,float)>;
@@ -118,13 +177,141 @@ float llbar_dphi(float pt1, float eta1, float phi1, float mass1,
 }
 
 // printing out things for all events like b mass or so
-auto printer = [] (auto &p) {std::cout << p << "\n";};
+auto printer_normal = [] (auto &p) {std::cout << p << "\n";};
+auto printer_reweighted = [] (auto &p) {std::cout << "reweighted: " << p << "\n";};
 
+//int main(int argc, char **argv) {
 int main() {
   // the core part of the framework are all within this namespace
   // note: an example of CL arguments are provided in bparking/bpark_tt3l.cc file
   // which is not yet integrated into the example
   using namespace Framework;
+//  int index;
+//  int c;
+//
+//  opterr = 0;
+//  float mass;
+//  float width;
+//  higgs_type_t higgs_type = higgs_type_t::undefined;
+//  res_int_t res_int = res_int_t::undefined;
+//  std::istringstream ss;
+//  int calc_resonance = 0;
+//  int calc_interference = 0;
+//  int pseudo_scalar = 0;
+//  int scalar = 0;
+//  calc_weight_version calc_weight_variant = calc_weight_version::undefined;
+//
+//  while ((c = getopt (argc, argv, "m:w:ripsv:")) != -1){
+//    std::string arg = "";
+//    if (optarg) arg = std::string(optarg);
+//    switch (c)
+//      {
+//      case 'm':{
+//        std::string mass_str;
+//        mass_str = arg;
+//        ss.clear();
+//        ss.str(mass_str);
+//        ss >> mass;
+//        if (ss && ss.eof()){
+//            std::cout << "mass: " << mass << std::endl;
+//        } 
+//        else {
+//            std::cerr << "mass must be a number." << std::endl;
+//            return 1;
+//        }
+//        break;}
+//      case 'w':{
+//        std::string width_str;
+//        width_str = arg;
+//        ss.clear();
+//        ss.str(width_str);
+//        ss >> width;
+//        if (ss && ss.eof()){
+//           std::cout << "width: " << width << std::endl;
+//        }
+//        else {
+//           std::cerr << "width must be a number." << std::endl;
+//           return 1;}
+//        break;}
+//      case 'r':
+//        calc_resonance = 1;
+//        res_int = res_int_t::resonance;
+//        std::cout << "calculating resonance" << std::endl;
+//        break;
+//      case 'i':
+//        calc_interference = 1;
+//        res_int = res_int_t::interference;
+//        std::cout << "calculating interference" << std::endl;
+//        break;
+//      case 's':
+//        scalar = 1;
+//        higgs_type = higgs_type_t::scalar;
+//        std::cout << "higgs type: scalar" << std::endl; 
+//        break;
+//      case 'p':
+//        pseudo_scalar = 1;
+//        higgs_type = higgs_type_t::pseudo_scalar;
+//        std::cout << "higgs type: pseudo scalar" << std::endl; 
+//        break;
+//      case 'v':{
+//        std::string variant_str = arg;
+//        if (variant_str ==  "juan_code"){
+//            calc_weight_variant = calc_weight_version::juan_code;
+//            std::cout << "Using calculation variant juan_code" << std::endl;
+//        }
+//        else if (variant_str == "juan_paper") {
+//            calc_weight_variant = calc_weight_version::juan_paper;
+//            std::cout << "Using calculation variant juan_paper" << std::endl;
+//        }
+//        else {
+//            std::cerr << "The calculation variant must be one of the following: juan_code or  juan_paper." << std::endl;
+//            return 1;
+//        }
+//        break;}
+//      case '?':
+//        if (optopt == 'c')
+//          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+//        else if (isprint (optopt))
+//          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+//        else
+//          fprintf (stderr,
+//                   "Unknown option character `\\x%x'.\n",
+//                   optopt);
+//        return 1;
+//      default:
+//        abort ();
+//      }
+//    }
+//  if (!mass){
+//    std::cerr << "You have to specify the the mass of the higgs (-m <mass in GeV>)." << std::endl;
+//  }
+//  if (!width){
+//    std::cerr << "You have to specify the the width of the higgs (-w <width>)." << std::endl;
+//  }
+//  
+//  if (calc_resonance + calc_interference == 0){
+//    std::cerr << "You must choose either resonance (-r) and/or interference (-i)." << std::endl;
+//    return 0;
+//  } 
+//  else if (calc_resonance + calc_interference == 2){
+//    res_int = res_int_t::both;
+//  }
+//  if (scalar + pseudo_scalar != 1){
+//    std::cerr << "You must choose either scalar (-s) or pseudo scalar (-p)." << std::endl;
+//    return 0;
+//  }
+//  if (calc_weight_variant == calc_weight_version::undefined){
+//    std::cerr << "You have to specify a calculation method for reweighting." << std::endl;
+//    return 0;
+//  } 
+//
+//  
+//  for (index = optind; index < argc; index++)
+//    printf ("Non-option argument %s\n", argv[index]);
+
+
+
+
 
   // first and foremost, we specify the input files we will be looking at
   // this is done by constructing a dataset object
@@ -136,11 +323,11 @@ int main() {
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/022107FA-F567-1B44-B139-A18ADC996FCF.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
   //dat.add_file("/pnfs/desy.de/cms/tier2/store/mc/RunIIAutumn18NanoAODv7/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/60000/0EF179F9-428D-B944-8DB3-63E04ED9AE8E.root");
-  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_normal/root_files/ttbarlo_normal__00000.root");
+  //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_new_nanoaod/root_files/ttbarlo_new_nanoaod__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg__00000.root");
   //dat.add_file("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg/root_files/heavyhiggs_m600_w15_000_INT_PSEUDO_lo_cfg__00000.root");
 
-  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/heavyhiggs_m600_w15_000_RES_PSEUDO_lo_cfg/root_files/");
+  std::string dir_string("/nfs/dust/cms/user/meyerlin/ba/runs/ttbarlo_new_nanoaod/root_files/");
   struct dirent *entry = nullptr;
   DIR *dp = opendir(dir_string.c_str());
   if (dp == nullptr) {
@@ -155,7 +342,7 @@ int main() {
        dat.add_file(file_string);
   }
   closedir(dp);
-  
+
   // next step is to specify the attributes to be included in the analysis
   // for this we will make use of two data structures, collections and aggregates
   // both inherit from the group data structure, which at this stage can be taken as a set of attributes that belong together
@@ -189,7 +376,7 @@ int main() {
   metadata.add_attribute("lhe_orixwgtup", "LHEWeight_originalXWGTUP", 1.f);
 
   // next we initialize an array-type collection
-  // the constructor arguments in this case are: 
+  
   // 1- the collection name
   // 2- the name of a non-array branch that holds the number of elements each array contains in each branch
   // 3- the number of attributes the collection is expected to contain
@@ -197,7 +384,7 @@ int main() {
   // as with 3- the framework adapts the memory layout as the need arises, but it is good practice to provide a helpful hint
   // note the type list within <>, for technical reasons we can not use the type bool for boolean branches
   // but use the custom boolean type instead, which functions the same for us 
-  Collection<boolean, int, float> gen_particle("gen_particle", "nGenPart", 12, 8192);
+  Collection<boolean, int, float, double> gen_particle("gen_particle", "nGenPart", 12, 8192);
   gen_particle.add_attribute("default_mass", "GenPart_mass", 1.f);
   gen_particle.add_attribute("pt", "GenPart_pt", 1.f);
   gen_particle.add_attribute("eta", "GenPart_eta", 1.f);
@@ -206,6 +393,8 @@ int main() {
   gen_particle.add_attribute("status", "GenPart_status", 1);
   gen_particle.add_attribute("flag", "GenPart_statusFlags", 1);
   gen_particle.add_attribute("mother", "GenPart_genPartIdxMother", 1);
+
+  std::cout << "after add attributes to gen-particle" << std::endl << std::endl;;
 
   // on top of adding attributes directly read from the branches
   // we can also add attributes which are transformed from existing attributes
@@ -353,11 +542,217 @@ int main() {
     return mass;
     }, "default_mass", "pdg", "dileptonic_ttbar" ); 
  
+//  std::cout << "after gen_particle transforms" << std::endl;
+  
+  // add LHE particle Collection for reweighting
+  Collection<boolean, int, float, double> lhe_particle("lhe_particle", "nLHEPart", 12, 16);
+//  std::cout << "before adding sth" << std::endl;
+  lhe_particle.add_attribute("pt", "LHEPart_pt", 1.f);
+  lhe_particle.add_attribute("eta", "LHEPart_eta", 1.f);
+  lhe_particle.add_attribute("phi", "LHEPart_phi", 1.f);
+  lhe_particle.add_attribute("default_mass", "LHEPart_mass", 1.f);
+  lhe_particle.add_attribute("pdg", "LHEPart_pdgId", 1);
+  lhe_particle.add_attribute("ipz", "LHEPart_incomingpz", 1.f);
+
+  Aggregate lhe_event("lhe_event", 7, 1, gen_particle, gen_particle, lhe_particle, lhe_particle);
+
+//  std::cout << "before lhe_indexer" << std::endl;
+
+  //  when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
+  //  this is done by providing a function, whose arguments are references to the groups
+  //  the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
+  //  the first argument is identified with the first group given to the aggregate constructor and so on
+  lhe_event.set_indexer([&g = lhe_particle] (const auto &g1, const auto &g2, const Group<boolean, int, float, double> &g3, const Group<boolean, int, float, double> &g4)
+                       -> std::vector<std::array<int, 4>> {
+                          // we use the tags defined above to find the top and antitop
+                          // filter_XXX returns a vector of indices of elements fullfilling the criteria
+                          // list of currently supported filter operations are in the group header file
+                          // g.update_indices( g.filter_not("ipz", 0.f) );
+                         
+//                          std::cout << "lhe_event indexer beginning" << std::endl;
+ 
+                          auto initial = g.filter_not("ipz", 0.f);
+                          auto ngluon = g.filter_equal("pdg", 21, initial).size();
+//                          std::cout << "lhe_event indexer after ngluon" << std::endl;
+                            
+                            
+                          auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
+                          auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+                          auto bottoms = g.sort_descending("pdg", merge(g.filter_equal("pdg", 5), g.filter_equal("pdg", -5)));
+                          auto neutrino = merge(g3.filter_equal("pdg", 12), g3.filter_equal("pdg", 14), g3.filter_equal("pdg", 16));
+                          auto antineutrino = merge(g4.filter_equal("pdg", -12), g4.filter_equal("pdg", -14), g4.filter_equal("pdg", -16));
+   
+//                          float eta_lepton = g3.template get<float>("eta")[lepton[0]]; 
+//                          float eta_antilepton = g4.template get<float>("eta")[antilepton[0]];
+//                          float phi_lepton = g3.template get<float>("phi")[lepton[0]];
+//                          float phi_antilepton = g4.template get<float>("phi")[antilepton[0]];
+//                          float pt_lepton = g3.template get<float>("pt")[lepton[0]];
+//                          float pt_antilepton = g4.template get<float>("pt")[antilepton[0]];
+//                          float m_lepton = g3.template get<float>("default_mass")[lepton[0]];
+//                          float m_antilepton = g4.template get<float>("default_mass")[antilepton[0]];
+//                          
+//                          float eta_bottom = g3.template get<float>("eta")[bottoms[0]]; 
+//                          float eta_antibottom = g3.template get<float>("eta")[bottoms[1]];
+//                          float phi_bottom = g3.template get<float>("phi")[bottoms[0]];
+//                          float phi_antibottom = g3.template get<float>("phi")[bottoms[1]];
+//                          float pt_bottom = g3.template get<float>("pt")[bottoms[0]];
+//                          float pt_antibottom = g3.template get<float>("pt")[bottoms[1]];
+//                          float m_bottom = g3.template get<float>("default_mass")[bottoms[0]];
+//                          float m_antibottom = g3.template get<float>("default_mass")[bottoms[1]];
+//                          
+//                          float eta_neutrino = g3.template get<float>("eta")[neutrino[0]]; 
+//                          float eta_antineutrino = g4.template get<float>("eta")[antineutrino[0]];
+//                          float phi_neutrino = g3.template get<float>("phi")[neutrino[0]];
+//                          float phi_antineutrino = g4.template get<float>("phi")[antineutrino[0]];
+//                          float pt_neutrino = g3.template get<float>("pt")[neutrino[0]];
+//                          float pt_antineutrino = g4.template get<float>("pt")[antineutrino[0]];
+//                          float m_neutrino = g3.template get<float>("default_mass")[neutrino[0]];
+//                          float m_antineutrino = g4.template get<float>("default_mass")[antineutrino[0]];
+//                            
+//                          TLorentzVector lepton_vec, antilepton_vec, bottom_vec, antibottom_vec, neutrino_vec, antineutrino_vec;
+//                          lepton_vec.SetPtEtaPhiM(pt_lepton, eta_lepton, phi_lepton, m_lepton);
+//                          antilepton_vec.SetPtEtaPhiM(pt_antilepton, eta_antilepton, phi_antilepton, m_antilepton);
+//                          bottom_vec.SetPtEtaPhiM(pt_bottom, eta_bottom, phi_bottom, m_bottom);
+//                          antibottom_vec.SetPtEtaPhiM(pt_antibottom, eta_antibottom, phi_antibottom, m_antibottom);
+//                          neutrino_vec.SetPtEtaPhiM(pt_neutrino, eta_neutrino, phi_neutrino, m_neutrino);
+//                          antineutrino_vec.SetPtEtaPhiM(pt_antineutrino, eta_antineutrino, phi_antineutrino, m_antineutrino);
+//                         
+//                          TLorentzVector sum_lbar_b_n = antilepton_vec + bottom_vec + neutrino_vec;
+//                          double_t sum_lbar_b_n_X = sum_lbar_b_n.X();
+//                          double_t sum_lbar_b_n_Y = sum_lbar_b_n.Y();
+//                          double_t sum_lbar_b_n_Z = sum_lbar_b_n.Z();
+//                          double_t sum_lbar_b_n_T = sum_lbar_b_n.T();
+//                          std::cout << "sum_lbar_b_n: ( " << sum_lbar_b_n_X << ", " << sum_lbar_b_n_Y << ", " << sum_lbar_b_n_Z << ", " << sum_lbar_b_n_T << " )" << std::endl;
+//                          
+//                          TLorentzVector sum_l_bbar_nbar = lepton_vec + antibottom_vec + antineutrino_vec;
+//                          double_t sum_l_bbar_nbar_X = sum_l_bbar_nbar.X();
+//                          double_t sum_l_bbar_nbar_Y = sum_l_bbar_nbar.Y();
+//                          double_t sum_l_bbar_nbar_Z = sum_l_bbar_nbar.Z();
+//                          double_t sum_l_bbar_nbar_T = sum_l_bbar_nbar.T();
+//                          std::cout << "sum_l_bbar_nbar: ( " << sum_l_bbar_nbar_X << ", " << sum_l_bbar_nbar_Y << ", " << sum_l_bbar_nbar_Z << ", " << sum_l_bbar_nbar_T << " )" << std::endl;
+  
+                          if (ngluon == 1)
+                          {
+                            std::cout << "lhe_event indexer ngluon == 1" << std::endl;
+                            int sign_pz = ((g.get<float>("ipz"))[initial[0]] > 0) ? 1 : -1;
+                            
+                          
+                            //auto tops = g.sort_descending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+                            auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
+                            auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
+                            float eta_top = g1.template get<float>("eta")[top[0]]; 
+                            float eta_antitop = g2.template get<float>("eta")[antitop[0]];
+                            float phi_top = g1.template get<float>("phi")[top[0]];
+                            float phi_antitop = g2.template get<float>("phi")[antitop[0]];
+                            float pt_top = g1.template get<float>("pt")[top[0]];
+                            float pt_antitop = g2.template get<float>("pt")[antitop[0]];
+                            float m_top = g1.template get<float>("default_mass")[top[0]];
+                            float m_antitop = g2.template get<float>("default_mass")[antitop[0]];
+                            
+                            TLorentzVector top_vec, antitop_vec;
+                            top_vec.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
+                            antitop_vec.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
+                            
+                            
+                            TLorentzVector sum = top_vec + antitop_vec;
+                            int sign_eta = sum.Eta() > 0 ? 1 : -1;
+ 
+                            if (g.get<int>("pdg")[initial[0]] == 21)
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 2;}
+                              else {
+                                ngluon = 0; }
+                            } 
+                            else
+                            {
+                              if (sign_eta != sign_pz) {
+                                ngluon = 0; }
+                              else {
+                                ngluon = 2; }
+                            }
+                          }
+                          
+                          if (ngluon == 0) { 
+//                            std::cout << "lhe_event indexer ngluon == 0" << std::endl;
+                            return {}; }
+                        
+                          if (ngluon == 2)
+                          {
+ //                            std::cout << "lhe_event indexer ngluon == 2" << std::endl;
+                             auto top = g1.filter_equal("pdg", 6).filter_equal("status", 22);
+ //                            std::cout << "lhe_event indexer ngluon == 2, after top" << std::endl;
+                             auto antitop = g2.filter_equal("pdg", -6).filter_equal("status", 22);
+ //                            std::cout << "lhe_event indexer ngluon == 2, after antitop" << std::endl;
+                          
+                             //auto lepton = g3.filter_equal("pdg", 11, g3.filter_equal("pdg", 13, g3.filter_equal("pdg", 15)));
+                             auto lepton = merge(g3.filter_equal("pdg", 11), g3.filter_equal("pdg", 13), g3.filter_equal("pdg", 15));
+  //                           std::cout << "lhe_event indexer ngluon == 2, after lepton" << std::endl;
+                             // auto lepton = g3.filter_3values("pdg", 11, 13, 15);
+                             // auto antilepton = g4.filter_3values("pdg", -11, -13, -15); 
+                             auto antilepton = merge(g4.filter_equal("pdg", -11), g4.filter_equal("pdg", -13), g4.filter_equal("pdg", -15));
+//                             std::cout << "lhe_event indexer ngluon == 2, after antilepton" << std::endl;
+                             //auto antilepton = g4.filter_equal("pdg", -11, g4.filter_equal("pdg", -13, g4.filter_equal("pdg", -15)));
+                             //int empty = 0;
+//                             std::cout << "top size:" << top.size() << std::endl;
+                             if (top.size() != 1 or antitop.size() != 1 or lepton.size() != 1 or antilepton.size() != 1) {
+                               return{};}
+                             else {std::cout << "es geht!!" << std::endl;}
+                             return {{top[0], antitop[0], lepton[0], antilepton[0]}};
+                          }
+//                          std::cout << "lhe_event indexer end" << std::endl;
+
+                          return {};
+                       });
+//  std::cout << "after lhe_indexer" << std::endl;
+  
+
+
   // having specified all the branches we are interested in, we associate the collections with the dataset
   // this is done by the call below, where the arguments are simply all the collections we are considering
   // this call is equivalent to SetBranchAddress(...) etc steps in a more traditional flat tree analyses
   // be sure to include all the collections in the call, as step-wise association is currently not supported
-  dat.associate(metadata, gen_particle);
+  dat.associate(metadata, gen_particle, lhe_particle);
+  
+  //calc_weight_version calc_weight_version = calc_weight_version::juan_paper;
+  //higgs_type_t higgs_type = higgs_type_t::pseudo_scalar;
+  //res_int_t res_int = res_int_t::both;
+  //float mass = 400;
+  //float width = 20;
+
+  lhe_event.add_attribute("weight_float", calculate_weight<float,float>(), 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+  
+  lhe_event.add_attribute("weight_double", calculate_weight<float, double>(), 
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+  
+//  lhe_event.add_attribute("weight_juan_code_float", calculate_weight<float,float>(calc_weight_version::juan_code, higgs_type), 
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//  
+//  lhe_event.add_attribute("weight_juan_code_double", calculate_weight<float, double>(calc_weight_version::juan_code, higgs_type), 
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "gen_particle::pt", "gen_particle::eta", "gen_particle::phi", "gen_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass",
+//                             "lhe_particle::pt", "lhe_particle::eta", "lhe_particle::phi", "lhe_particle::default_mass");
+//
+  // calculate how precise the weights are by comparing double and float precision
+  lhe_event.transform_attribute("weight_precision", 
+                                   [] (float weight_float, double weight_double) -> double {
+                                     double precision = (weight_double - weight_float) / weight_double;
+                                     return precision;
+                                   }, "weight_float", "weight_double");
+
+
+
 
   // now we move to the case of attributes that are well-defined only for some selection of elements from the collections
   // for example, the invariant mass of the system of final top quark pair is relevant only for gen_particle with attribute dileptonic_ttbar == 1 or 6
@@ -367,15 +762,17 @@ int main() {
   // 2- the number of attributes it is expected to contain
   // 3- the number of elements each array is expected to contain
   // 4- the collections that contribute an index to the aggregate (specified once per index)
-  // here we want the 2-particle system made of the final top quark pair, so we provide the gen_particle twice, once for top and once for antitop
+  // here we want the 2-particle system made of the finaection{What I do} top quark pair, so we provide the gen_particle twice, once for top and once for antitop
   // it is worth noting that currently an aggregate can only be made from groups of the same type
   Aggregate gen_ttbar("gen_ttbar", 7, 1, gen_particle, gen_particle);
+
+  std::cout << "before gen_ttbar_indexer" << std::endl;
 
   // when using aggregates, one must specify the indexing rule i.e. how the elements from the underlying groups are to be combined
   // this is done by providing a function, whose arguments are references to the groups
   // the return type of the function is a vector of array of indices; the array size corresponds to the number of underlying index
   // the first argument is identified with the first group given to the aggregate constructor and so on
-  gen_ttbar.set_indexer([] (const auto &g1, const auto &g2)
+  gen_ttbar.set_indexer([&g = gen_particle] (const Group<boolean, int, float, double> &g1, const Group<boolean, int, float, double> &g2)
                        -> std::vector<std::array<int, 2>> {
                           // we use the tags defined above to find the top and antitop
                           // filter_XXX returns a vector of indices of elements fullfilling the criteria
@@ -383,13 +780,56 @@ int main() {
                           auto top = g1.filter_equal("dileptonic_ttbar", 1);
                           auto antitop = g2.filter_equal("dileptonic_ttbar", 6);
 
+//                          auto tops = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6), g.filter_equal("pdg", -6)));
+//                          auto tops_22 = g.sort_ascending("pdg", merge(g.filter_equal("pdg", 6).filter_equal("status", 22), g.filter_equal("pdg", -6).filter_equal("status", 22)));
+//                          std::cout << "tops.size" << tops.size() << std::endl;
+//                          std::cout << "tops_22.size" << tops_22.size() << std::endl;
+//                          float eta_top = g1.template get<float>("eta")[tops_22[0]]; 
+//                          float eta_antitop = g2.template get<float>("eta")[tops_22[1]];
+//                          float phi_top = g1.template get<float>("phi")[tops_22[0]];
+//                          float phi_antitop = g2.template get<float>("phi")[tops_22[1]];
+//                          float pt_top = g1.template get<float>("pt")[tops_22[0]];
+//                          float pt_antitop = g2.template get<float>("pt")[tops_22[1]];
+//                          float m_top = g1.template get<float>("default_mass")[tops_22[0]];
+//                          float m_antitop = g2.template get<float>("default_mass")[tops_22[1]];
+//                            
+//                          TLorentzVector top_vec, antitop_vec;
+//                          top_vec.SetPtEtaPhiM(pt_top, eta_top, phi_top, m_top);
+//                          antitop_vec.SetPtEtaPhiM(pt_antitop, eta_antitop, phi_antitop, m_antitop);
+//                          double_t top_X = top_vec.X();
+//                          double_t top_Y = top_vec.Y();
+//                          double_t top_Z = top_vec.Z();
+//                          double_t top_T = top_vec.T();
+//                          double_t antitop_X = antitop_vec.X();
+//                          double_t antitop_Y = antitop_vec.Y();
+//                          double_t antitop_Z = antitop_vec.Z();
+//                          double_t antitop_T = antitop_vec.T();
+                          
+ //                         std::cout << "top_p4 = ( " << top_X << ", " << top_Y << ", " << top_Z << ", " << top_T << " )" << std::endl;  
+ //                         std::cout << "antitop_p4 = ( " << antitop_X << ", " << antitop_Y << ", " << antitop_Z << ", " << antitop_T << " )"<< std::endl;  
+
                           // check that the collection contains exactly one top and one antitop
                           // if not the case, return an empty index list
-                          if (top.size() != 1 or antitop.size() != 1)
+                          if (top.size() != 1 or antitop.size() != 1){
+//                            std::cout << "tops are empty in gen_ttbar" << std::endl;
                             return {};
-
+                          }
+//                          else { 
+//                            int top_status = g1.template get<int>("status")[tops[0]];
+//                            int antitop_status = g2.template get<int>("status")[tops[1]];
+//                            std::cout << "tops are there, status top: " << top_status << ", antitop status: " << antitop_status << std::endl;
+//                            int top_22 = g.filter_equal("pdg", 6).filter_equal("status", 22).size();
+//                            int top_44 = g.filter_equal("pdg", 6).filter_equal("status", 44).size();
+//                            int top_62 = g.filter_equal("pdg", 6).filter_equal("status", 62).size();
+//                            int antitop_22 = g.filter_equal("pdg", -6).filter_equal("status", 22).size();
+//                            int antitop_44 = g.filter_equal("pdg", -6).filter_equal("status", 44).size();
+//                            int antitop_62 = g.filter_equal("pdg", -6).filter_equal("status", 62).size();
+//                            std::cout << "top_22: " << top_22 << ", top_44: " << top_44 << ", top_62: " << top_62 << std::endl; 
+//                            std::cout << "antitop_22: " << antitop_22 << ", antitop_44: " << antitop_44 << ", antitop_62: " << antitop_62 << std::endl; 
+//                          }
                           return {{top[0], antitop[0]}};
                        });
+  std::cout << "after gen_ttbar_indexer";
 
   // having specified the index, we can now specify the attributes
   // for aggregates, the argument to add_attributes are:
@@ -484,6 +924,8 @@ int main() {
   // where we are interested in six particles: tops, charged leptons and bottoms
   Aggregate gen_tt_ll_bb("gen_tt_ll_bb", 22, 1, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle, gen_particle);
 
+  std::cout << "before gen_tt_ll_bb_indexer" << std::endl;
+
   // set the indices similarly as above
   gen_tt_ll_bb.set_indexer([] (const auto &g1, const auto &g2, const auto &g3, const auto &g4, const auto &g5, const auto &g6)
                        -> std::vector<std::array<int, 6>> {
@@ -502,6 +944,8 @@ int main() {
 
                           return {{top[0], antitop[0], lepton[0], antilepton[0], bottom[0], antibottom[0]}};
                        });
+
+  std::cout << "after gen_tt_ll_bb_indexer" << std::endl;
 
   // having to define a masking for each case can be cumbersome
   // so we will be using the function_util plugin to simplify the work somewhat
@@ -657,6 +1101,8 @@ int main() {
   spin_add_attribute("cpTTT", spin_correlation<>("cpTTT"));
   spin_add_attribute("cpTP", spin_correlation<>("cpTP"));
 
+  std::cout << "after all add attributes" << std::endl;
+
 
   // let's histogram the attributes we defined above
   // this is done through the histogram class, which handles a group of histograms sharing the same weights and to be filled at the same time
@@ -667,8 +1113,10 @@ int main() {
   // here we only take the per-event weight from the metadata collection
   // we can see here that internally a non-array collection is in fact an array collection of size 1
   // if no weighter is defined, histograms are filled with weight 1
-  //hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  // hist_no_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+
+  hist_no_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 = lhe_event.get<float>("weight_float")] () { return (weight[0] * weight2[0]); });
+  //hist_no_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
 
   // next we define the histograms, where the histogram type are given inside the <> bracket
   // all histogram types supported by ROOT are supported
@@ -700,8 +1148,8 @@ int main() {
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bottom_eta"), "bottom_eta_no_cut", "", 100, -5.f, 5.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_pt"), "antibottom_pt_no_cut", "", 100, 0.f, 400.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "antibottom_eta"), "antibottom_eta_no_cut", "", 100, -5.f, 5.f);
-
-  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_no_cut", "", 120, 300.f, 1500.f);
+  // war vorher bis 1500
+  hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "ttbar_mass"), "ttbar_mass_2_no_cut", "", 120, 300.f, 600.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "llbar_mass"), "llbar_mass_no_cut", "", 120, 0.f, 1200.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "bbbar_mass"), "bbbar_mass_no_cut", "", 120, 0.f, 1200.f);
   hist_no_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "lb_mass"), "lb_mass_no_cut", "", 120, 0.f, 1200.f);
@@ -773,7 +1221,8 @@ int main() {
   // so the histogram instance is defined identically as above except the histogram names
   Histogram hist_cut;
   //hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
-  hist_cut.set_weighter([&weight = metadata.get<float>("weight")] () { return (weight[0] < 0) ? 0 : weight[0]; });
+  hist_cut.set_weighter([&weight = metadata.get<float>("weight"), &weight2 =lhe_event.get<float>("weight_float")] () { return (weight[0] * weight2[0]); });
+  //hist_cut.set_weighter([&weight = lhe_event.get<float>("weight_float")] () { return (weight[0]); });
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_pt"), "ttbar_pt_cut", "", 120, 0.f, 1200.f);
 
@@ -831,7 +1280,7 @@ int main() {
 //  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_x"), "ttbar_x_cut", "", 100, -100.f, 100.f);
 //  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_y"), "ttbar_y_cut", "", 100, -100.f, 100.f);
 //  hist_cut.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_z"), "ttbar_z_cut", "", 100, -100.f, 100.f);
-  
+ 
 
   //spin correlation
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
@@ -848,7 +1297,12 @@ int main() {
   hist_cut.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHan"), "spin_cHan", "", 100, -1.f, 1.f);
 
 
-
+//  Histogram hist_cut_juan_paper;
+//  //hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight")] () { return weight[0]; });
+//  hist_cut_juan_paper.set_weighter([&weight = metadata.get<float>("weight"), &weight_new =lhe_event.get<float>("weight_juan_paper_float")] () { return (weight[0] * weight_new[0]); });
+//  hist_cut_juan_paper.make_histogram<TH1F>(filler_first_of(gen_ttbar, "ttbar_mass"), "ttbar_mass_cut", "", 120, 300.f, 1500.f);
+//  hist_cut_juan_paper.make_histogram<TH1F>(filler_first_of(gen_tt_ll_bb, "cHel"), "spin_cHel", "", 100, -1.f, 1.f);
+//
 
   // if the unbinned values are needed we can save them as flat trees
   // just like the histogram object we start by instantiating the object
@@ -878,19 +1332,39 @@ int main() {
   // that captures the references to all the collections, aggregates and histograms we defined above
   // the only argument to this function is the entry number
   // one way to think about this function is that it contains the instructions on how to analyze a single event
-  auto f_analyze = [&metadata, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
+  auto f_analyze = [&metadata, &lhe_particle, &lhe_event, &gen_particle, &gen_ttbar, &gen_tt_ll_bb, &hist_no_cut, &hist_cut, &tree_gen] (long long entry) {
     // first we start by populating the collections
     // this is essentially equivalent of the tree->GetEntry(entry)
     // with the (compulsory) freedom of timing the call separately for each group
+//    std::cout << "populate metadata" << std::endl;
     metadata.populate(entry);
+//    std::cout << "populate gen_particle" << std::endl;
     gen_particle.populate(entry);
+//    std::cout << "populate lhe_particle" << std::endl;
+    lhe_particle.populate(entry);
 
     // since the collections serve as input to the aggregates, they need to be populated first
+//    std::cout << "populate gen_ttbar" << std::endl;
     gen_ttbar.populate(entry);
+//    std::cout << "populate gen_tt_ll_bb" << std::endl;
     gen_tt_ll_bb.populate(entry);
+//    std::cout << "populate lhe_event" << std::endl;
+    lhe_event.populate(entry);
+
+//    std::cout << "populates finished" << std::endl;
 
     //printing
-    //metadata.iterate(printer, -1, -1, "weight");
+    std::cout << "normal weight: ";
+    metadata.iterate(printer_normal, metadata.ref_to_indices(), "weight");
+    std::cout << "float weight: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "weight_float");
+    std::cout << "double weight: ";
+    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "weight_double");
+//    std::cout << "ttbar mass: ";
+//    lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "ttbar_mass");
+    //std::cout << "antitop mass: ";
+    //lhe_event.iterate(printer_normal, lhe_event.ref_to_indices(), "tbar_mass");
+    //lhe_event.iterate(printer_reweighted, lhe_event.ref_to_indices(), "weight_precision");
     
     // we make an oversimplification here, considering only the events where gen_tt_ll_bb contain an element
     // this is because in the above, we have grouped the gen_ttbar and gen_tt_ll_bb histograms together
@@ -900,8 +1374,14 @@ int main() {
     if (!gen_tt_ll_bb.n_elements())
       return;
 
+    if (!lhe_event.n_elements())
+      {
+        std::cout << "No elements in lhe_event" << std::endl;
+      	return;
+      }
+
     // printing stuff
-    // metadata.iterate(printer, -1, -1, "lumi");
+    // metadata.iterate(logger(std::cout), -1, -1, "lumi", "event");
     // gen_tt_ll_bb.iterate(printer, -1, -1, "lbbar_mass");
     //gen_particle.iterate(printer, -1, -1, "pt");
 
@@ -914,27 +1394,44 @@ int main() {
     // but to highlight some additional features we will instead do it through the gen_particle collections instead
     // begin by selecting the daughters among all the gen particles using a generic filter method
     // which needs a function that evaluates to true or false based on a list of attributes
-    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
-        // not lepton or bottom, reject
-        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
-          return false;
+//    auto lepton_bottom_passing_pt_eta_cut = gen_particle.filter([] (int tag, float pt, float eta) {
+//        // not lepton or bottom, reject
+//        if (tag != 9 and tag != 4 and tag != 3 and tag != 8)
+//          return false;
+//
+//        if (pt > 20.f and std::abs(eta) < 2.4f)
+//          return true;
+//        else
+//          return false;
+//      }, "dileptonic_ttbar", "pt", "eta");
+//
+//    // recall that filter methods return a list of indices
+//    // to overwrite the indices list of the group, we use the update_indices method
+//    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
+//
+//    // if all four objects pass the cut, then gen_particle will have 4 elements left
+//    // fill also our tree at this point
+//    if (gen_particle.n_elements() == 4) {
+//      hist_cut.fill();
+//      tree_gen.fill();
+//    }
 
-        if (pt > 20.f and std::abs(eta) < 2.4f)
-          return true;
-        else
-          return false;
-      }, "dileptonic_ttbar", "pt", "eta");
+    auto passll = gen_tt_ll_bb.filter_greater("lepton_pt", 20.f, 
+                                              gen_tt_ll_bb.filter_in("lepton_eta", -2.4f, 2.4f,
+                                                                     gen_tt_ll_bb.filter_greater("antilepton_pt", 20.f,
+                                                                                                 gen_tt_ll_bb.filter_in("antilepton_eta", -2.4f, 2.4f))));
+    auto passllbb = gen_tt_ll_bb.filter_greater("bottom_pt", 20.f, 
+                                               gen_tt_ll_bb.filter_in("bottom_eta", -2.4f, 2.4f,
+                                                                      gen_tt_ll_bb.filter_greater("antibottom_pt", 20.f,
+                                                                                                  gen_tt_ll_bb.filter_in("antibottom_eta", -2.4f, 2.4f, 
+                                                                                                                         passll)))).size();
 
-    // recall that filter methods return a list of indices
-    // to overwrite the indices list of the group, we use the update_indices method
-    gen_particle.update_indices(lepton_bottom_passing_pt_eta_cut);
-
-    // if all four objects pass the cut, then gen_particle will have 4 elements left
-    // fill also our tree at this point
-    if (gen_particle.n_elements() == 4) {
+    if (passllbb) {
       hist_cut.fill();
+//      hist_cut_juan_paper.fill();
       tree_gen.fill();
     }
+
 
     /*/ here is the way to perform equivalent filtering using the gen_tt_ll_bb aggregate
     // by stacking multiple filter_XXX calls
@@ -960,10 +1457,17 @@ int main() {
   // for analyzing only a subset, provide as argument the desired number of events
   dat.analyze();
 
+
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
-  hist_no_cut.save_as("hist_RES_PSEUDO_spin_no_cut.root");
-  hist_cut.save_as("hist_RES_PSEUDO_spin_cut.root");
+  
+ // std::string filename_cut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering");
+ // std::string filename_nocut = create_filename("hist_ttbarlo_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering");
+
+  std::string filename_cut =  "hist_ttbarlo_reweighting_pseudo_scalar_m400_w20_juan_code_old_res_int_cut.root";
+  std::string filename_nocut =  "hist_ttbarlo_reweighting_pseudo_scalar_m400_w20_juan_code_old_res_int_nocut.root";
+  hist_no_cut.save_as(filename_nocut);
+  hist_cut.save_as(filename_cut);
   tree_gen.save();
 
   return 0;

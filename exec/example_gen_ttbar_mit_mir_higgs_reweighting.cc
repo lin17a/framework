@@ -1875,8 +1875,8 @@ int main(int argc, char **argv) {
   // when all is said and done, we collect the output
   // which we can plot, or perform statistical tests etc
   
-  std::string filename_cut = create_filename("hist_heavyhiggs_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering_res_reweighting_only");
-  std::string filename_nocut = create_filename("hist_heavyhiggs_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering_res_reweighting_only");
+  std::string filename_cut = create_filename("hist_heavyhiggs_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "cut_after_reordering_res_reweighting_only_different_beta_in_QCD_and_BSM");
+  std::string filename_nocut = create_filename("hist_heavyhiggs_reweighting", higgs_type, mass, width, calc_weight_variant, res_int, "no_cut_after_reordering_res_reweighting_only_different_beta_in_QCD_and_BSM");
 
   std::cout << "Saving as: " << filename_cut << std::endl;
 
