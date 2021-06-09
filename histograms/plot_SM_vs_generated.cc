@@ -20,15 +20,12 @@
       hist->hist->SetLineColor(hist->line_color);
       hist->hist->SetLineWidth(line_width);
       hist->hist->Rebin(rebin);
-      int nbins = hist->hist->GetXaxis()->GetNbins();
       hist->hist->Scale(1. / hist->hist->Integral());
+      int nbins = hist->hist->GetXaxis()->GetNbins();
       for (int i=0; i<nbins ;i++){
         Float_t v = hist->hist->GetBinContent(i);
-        //if (abs(v) < 10){
-        //  v = 0;
-        //}
         hist->hist->SetBinContent(i, abs(v));
-      }
+    }
     } 
 
     std::vector<double_t> maxs;
@@ -228,19 +225,15 @@
 
           // defining histogram structs with a histogram, color and name to hand it all together to the SetUp function
           histogram hist1;
-          histogram hist3;
           if (higgs_type == "pseudo_scalar"){
-            hist1 = {h1, "\\text{generated } A", kRed - 4};
-            //hist3 = {h3, "\\text{reweighted } A",  kBlue + 2};
-            hist3 = {h3, "\\text{SM } ", kGreen+2};
+            hist1 = {h1, "\\text{resonance } A", kRed + 1};
           }
           else {
-            hist1 = {h1, "\\text{generated } H", kOrange + 1};
-            //hist3 = {h3, "\\text{reweighted } H", kAzure + 7};
-            hist3 = {h3, "\\text{reweighted }", kGreen+2};
+            hist1 = {h1, "\\text{resonance } H", kGreen + 2};
           }
           //histogram hist1 = {h1, legend_1, kGreen-3};
         //  histogram hist2 = {h2, "int pseudo", kGreen+3};
+          histogram hist3 = {h3, "SM", kBlue+2};
           
          double_t chi2 = h1->TH1::Chi2Test(h3, "WW");
          std::cout << hist_name << ", chi^2 = " << chi2 << std::endl;
@@ -257,8 +250,8 @@
           // fits exactly under the info panel
           //auto legend = new TLegend(0.78,0.69,0.98,0.77);
           //auto legend = new TLegend(0.78,0.79,0.98,0.87);
-          auto legend = new TLegend(0.72,0.79,1.0,0.91);
-          legend->SetTextSize(0.03);        
+          auto legend = new TLegend(0.78,0.79,1.05,0.91);
+          legend->SetTextSize(0.02);        
   
           std::vector<histogram *> hists{&hist1, &hist3};
 
@@ -295,16 +288,16 @@
           //h1->GetXaxis()->SetTitle(l);
           h1->GetXaxis()->SetTitle(x_title.c_str());
           h1->GetYaxis()->SetTitle("normalized number of events");
-          h1->GetYaxis()->SetTitleOffset(2.5);
+          h1->GetYaxis()->SetTitleOffset(4);
           //h1->GetYaxis()->SetNdivisions();
           //h1->GetYaxis()->CenterTitle(true);
-          h1->SetTitleSize(.04, "XY");
+          h1->SetTitleSize(.05, "XY");
           h1->SetTitleSize(.08, "t");
 
           std::string hist_title = MakeTitle(variable.second, res_int, higgs_type, mass, width);
 
           h1->SetNameTitle(hist_name.c_str(), hist_title.c_str());
-          h1->SetLabelSize(.04, "XY");
+          h1->SetLabelSize(.05, "XY");
           //gStyle->SetTitleFontSize(20);
           
           TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
@@ -334,16 +327,15 @@
           // add a sub pad with the ratio 
           auto rp1 = new TRatioPlot(h1, h3);
           rp1->Draw();
-          rp1->GetLowerRefYaxis()->SetTitle("\\frac{\\text{generated}}{\\text{reweighted}}");
+          rp1->GetLowerRefYaxis()->SetTitle("\\frac{\\text{resonance}}{\\text{SM}}");
           rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
           rp1->GetLowerRefYaxis()->SetTitleOffset(2.5);
-          rp1->GetLowerRefXaxis()->SetTitleOffset(1.5);
+          rp1->GetLowerRefXaxis()->SetTitleOffset(2.5);
           rp1->GetLowerRefYaxis()->CenterTitle(true);
           //rp1->Draw();
           //rp1->GetYaxis->SetNdivisions(503);
           //rp1->GetLowerRefXaxis()->SetTitleSize(20);
-          //rp1->GetXaxis()->SetLabelSize(0.023);
-          rp1->GetLowerRefYaxis()->SetLabelSize(0.04);
+          rp1->GetXaxis()->SetLabelSize(0.023);
           //rp1->SetMinimum(-10);
           //rp1->SetMaximum(10); 
           can->Update();
@@ -352,7 +344,7 @@
           legend->Draw();
  
           // save with correct name
-          std::string filename_single_hist = folder + "/" + std::string(hist_name) + ".pdf";
+          std::string filename_single_hist = folder + "/" + std::string(hist_name) + ".tex";
           if (i == 0){
             filename_histogram = filename_histogram + "[";          
           }
@@ -378,10 +370,10 @@
 
 
   //std::vector<std::string> mass_width_combis = { "m400_w20", "m1000_w25", "m600_w30", "m800_w20" };
-  //std::vector<std::string> masses = { "400",  "1000", "600", "800" };
-  //std::vector<std::string> widths = { "20", "25", "30", "20" };
-  std::vector<std::string> masses = { "600" };
-  std::vector<std::string> widths = { "30" };
+  std::vector<std::string> masses = { "400",  "1000", "600", "800" };
+  std::vector<std::string> widths = { "20", "25", "30", "20" };
+  //std::vector<std::string> masses = { "600" };
+  //std::vector<std::string> widths = { "30" };
   std::vector<std::string> zeros = {"00", "000", "00", "000"};
   std::vector<std::string> res_int =  {"res"}; //, "int"}; //
   std::vector<std::string> RES_INT = {"RES"}; //, "INT"}; //
@@ -419,7 +411,7 @@
 
           std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
  
-          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_generated_vs_reweighted_more_spins";
+          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_SM_vs_genererated_more_spins";
           //std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_madspin_juan_paper_generated_vs_reweighted";
           //std::string folder = "test"; 
           if (mkdir(folder.c_str(), 0777) != 0){

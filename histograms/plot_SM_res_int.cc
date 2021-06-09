@@ -179,21 +179,22 @@
     {"spin_b1n_no_cut", "\\, b^2_n"}
   };
 
-  auto DrawHistograms = [ SetUpHistograms, GetHistogram, MakeTitle, units, variables ](std::string filename_generated, std::string filename_reweighted, std::string folder, std::string filename_histogram, std::string res_int, std::string higgs_type, std::string mass, std::string width){
+  auto DrawHistograms = [ SetUpHistograms, GetHistogram, MakeTitle, units, variables ](std::string filename_generated_res, std::string filename_generated_int, std::string filename_generated_SM, std::string filename_reweighted, std::string folder, std::string filename_histogram, std::string res_int, std::string higgs_type, std::string mass, std::string width){
    
-    TFile *f1 = TFile::Open( filename_generated.c_str() );
-    //TFile *f2 = TFile::Open( "hist_ttbarlo_reweighting_pseudo_scalar_m1000.000000_w25.000000_juan_paper_resonance_cut_after_reordering.root" );
-    TFile *f3 = TFile::Open( filename_reweighted.c_str() );
+    TFile *f_res = TFile::Open( filename_generated_res.c_str() );
+    TFile *f_int = TFile::Open( filename_generated_int.c_str() );
+    TFile *f_SM = TFile::Open( filename_generated_SM.c_str() );
+    TFile *f_rew = TFile::Open( filename_reweighted.c_str() );
 
-    if (!f1->IsOpen() or !f3->IsOpen()){
+    if (!f_res->IsOpen()  or !f_int->IsOpen() or !f_SM->IsOpen() or !f_rew->IsOpen()){
       std::cout << "File does not exist." << std::endl;
       return 0;
     }
 
 
-    int n_histograms = f1->GetListOfKeys()->GetSize();
+    int n_histograms = f_res->GetListOfKeys()->GetSize();
     std::cout << "number of histograms: " << n_histograms << std::endl;
-    TIter iter1(f1->GetListOfKeys());
+    TIter iter1(f_res->GetListOfKeys());
     TKey *key1;
 
     int i;
@@ -202,48 +203,59 @@
     while ((key1=(TKey*)iter1.Next()) ) {
       
        std::string hist_name = key1->GetName();
-       TH1F *h1 = (TH1F *) f1->Get( hist_name.c_str());   
+       TH1F *h_res = (TH1F *) f_res->Get( hist_name.c_str());   
        std::string title = hist_name;     
-       //size_t pos_1 = hist_name.find("_no_cut");
-       //size_t pos_2 = hist_name.find("_no_cut", pos_1 + 1);
-       //std::string attr = hist_name.substr(0, pos_1);
-       //std::string hist_name_positive = attr + "_positive";
-       //std::cout << hist_name_positive << std::endl;
-      
+
       // try to find histograms with the same name 
       try {
 
           std::cout << hist_name << std::endl;
           
           // get histograms with the same attribute from the other files 
-          histogram_raw hist_struct = GetHistogram(f3, hist_name);   
-          TH1F *h3;
-          if (hist_struct.status) {
-            h3 = hist_struct.hist;
-            std::cout << "Habe h3 gesetzt" << std::endl;
+          histogram_raw hist_struct_int = GetHistogram(f_int, hist_name);   
+          histogram_raw hist_struct_SM = GetHistogram(f_SM, hist_name);   
+          histogram_raw hist_struct_rew = GetHistogram(f_rew, hist_name);   
+          TH1F *h_int;
+          TH1F *h_SM;
+          TH1F *h_rew;
+          if (hist_struct_int.status and hist_struct_SM.status and hist_struct_rew.status ) {
+            h_int = hist_struct_int.hist;
+            h_SM = hist_struct_SM.hist;
+            h_rew = hist_struct_rew.hist;
+            std::cout << "Habe alle anderen hists gesetzt" << std::endl;
           }
           else {
             continue;
           }
 
           // defining histogram structs with a histogram, color and name to hand it all together to the SetUp function
-          histogram hist1;
-          histogram hist3;
-          if (higgs_type == "pseudo_scalar"){
-            hist1 = {h1, "\\text{generated } A", kRed - 4};
-            //hist3 = {h3, "\\text{reweighted } A",  kBlue + 2};
-            hist3 = {h3, "\\text{SM } ", kGreen+2};
-          }
-          else {
-            hist1 = {h1, "\\text{generated } H", kOrange + 1};
-            //hist3 = {h3, "\\text{reweighted } H", kAzure + 7};
-            hist3 = {h3, "\\text{reweighted }", kGreen+2};
-          }
+         // histogram hist1;
+         // histogram hist3;
+         // if (higgs_type == "pseudo_scalar"){
+         //   hist1 = {h1, "\\text{generated } A", kRed + 1};
+         //   hist3 = {h3, "\\text{reweighted } A", kBlue+2};
+         // }
+         // else {
+         //   hist1 = {h1, "\\text{generated } H", kGreen + 2};
+         //   hist3 = {h3, "\\text{reweighted } H", kBlue+2};
+         // }
+
+          h_res->Scale(1.389 / h_res->Integral());
+          h_int->Scale(-0.147 / h_int->Integral());
+          h_SM->Scale(420.3 / h_SM->Integral());
+
+          TH1F *h_gen = (TH1F*) h_res->Clone();
+          h_gen->Add(h_int);
+          //h_gen->Add(h_SM);
+         
+          histogram hist_gen = {h_gen, "generated", kRed};
+          histogram hist_rew = {h_rew, "reweighted", kBlue};
+
           //histogram hist1 = {h1, legend_1, kGreen-3};
-        //  histogram hist2 = {h2, "int pseudo", kGreen+3};
+          //histogram hist2 = {h2, "int pseudo", kGreen+3};
           
-         double_t chi2 = h1->TH1::Chi2Test(h3, "WW");
-         std::cout << hist_name << ", chi^2 = " << chi2 << std::endl;
+          //double_t chi2 = h1->TH1::Chi2Test(h3, "WW");
+          //std::cout << hist_name << ", chi^2 = " << chi2 << std::endl;
 
          // add a new histogram containing the sum of ttbar and the pseudo scalar higgs histograms
           //TH1F *h_sum_res_int_pseudo = (TH1F*) h1->Clone();
@@ -257,10 +269,10 @@
           // fits exactly under the info panel
           //auto legend = new TLegend(0.78,0.69,0.98,0.77);
           //auto legend = new TLegend(0.78,0.79,0.98,0.87);
-          auto legend = new TLegend(0.72,0.79,1.0,0.91);
-          legend->SetTextSize(0.03);        
+          auto legend = new TLegend(0.78,0.79,1.05,0.91);
+          legend->SetTextSize(0.02);        
   
-          std::vector<histogram *> hists{&hist1, &hist3};
+          std::vector<histogram *> hists{&hist_gen, &hist_rew};
 
           // adjust colors, scales, ... 
           SetUpHistograms(&hists, legend, 2, 1);
@@ -293,18 +305,18 @@
           }
  
           //h1->GetXaxis()->SetTitle(l);
-          h1->GetXaxis()->SetTitle(x_title.c_str());
-          h1->GetYaxis()->SetTitle("normalized number of events");
-          h1->GetYaxis()->SetTitleOffset(2.5);
+          h_gen->GetXaxis()->SetTitle(x_title.c_str());
+          h_gen->GetYaxis()->SetTitle("normalized number of events");
+          h_gen->GetYaxis()->SetTitleOffset(4);
           //h1->GetYaxis()->SetNdivisions();
           //h1->GetYaxis()->CenterTitle(true);
-          h1->SetTitleSize(.04, "XY");
-          h1->SetTitleSize(.08, "t");
+          h_gen->SetTitleSize(.05, "XY");
+          h_gen->SetTitleSize(.08, "t");
 
           std::string hist_title = MakeTitle(variable.second, res_int, higgs_type, mass, width);
 
-          h1->SetNameTitle(hist_name.c_str(), hist_title.c_str());
-          h1->SetLabelSize(.04, "XY");
+          h_gen->SetNameTitle(hist_name.c_str(), hist_title.c_str());
+          h_gen->SetLabelSize(.05, "XY");
           //gStyle->SetTitleFontSize(20);
           
           TCanvas *can = new TCanvas("canvas", "canvas", 200, 10, 1000, 1000);
@@ -317,9 +329,9 @@
              
           
           // draw all in the same histogram
-          h1->Draw("pe");
+          h_gen->Draw("pe");
 //          h2->Draw("pesame");
-          h3->Draw("pesame");
+          h_rew->Draw("pesame");
           //gStyle->SetTitleFontSize(0.7);
 
           can->Update();
@@ -332,18 +344,17 @@
           gStyle->SetOptStat(0);
  
           // add a sub pad with the ratio 
-          auto rp1 = new TRatioPlot(h1, h3);
+          auto rp1 = new TRatioPlot(h_gen, h_rew);
           rp1->Draw();
           rp1->GetLowerRefYaxis()->SetTitle("\\frac{\\text{generated}}{\\text{reweighted}}");
           rp1->GetLowerRefYaxis()->SetRangeUser(0,2);
           rp1->GetLowerRefYaxis()->SetTitleOffset(2.5);
-          rp1->GetLowerRefXaxis()->SetTitleOffset(1.5);
+          rp1->GetLowerRefXaxis()->SetTitleOffset(2.5);
           rp1->GetLowerRefYaxis()->CenterTitle(true);
           //rp1->Draw();
           //rp1->GetYaxis->SetNdivisions(503);
           //rp1->GetLowerRefXaxis()->SetTitleSize(20);
-          //rp1->GetXaxis()->SetLabelSize(0.023);
-          rp1->GetLowerRefYaxis()->SetLabelSize(0.04);
+          rp1->GetXaxis()->SetLabelSize(0.023);
           //rp1->SetMinimum(-10);
           //rp1->SetMaximum(10); 
           can->Update();
@@ -387,9 +398,9 @@
   std::vector<std::string> RES_INT = {"RES"}; //, "INT"}; //
   std::vector<std::string> r_i = {"r"}; //, "i"}; //
   std::vector<std::string> resonance_interference = {"resonance"}; //, "interference"}; //
-  std::vector<std::string> PSEUDO_SCALAR = {"SCALAR", "PSEUDO"}; //, 
-  std::vector<std::string> pseudo_scalar = {"scalar", "pseudo_scalar"}; 
-  std::vector<std::string> p_s = {"s", "p"}; //
+  std::vector<std::string> PSEUDO_SCALAR = { "PSEUDO"}; //,  {"SCALAR",
+  std::vector<std::string> pseudo_scalar = { "pseudo_scalar"}; // "scalar",
+  std::vector<std::string> p_s = {"p"}; // "s", 
 
   std::vector<std::string> positive_negative; 
 
@@ -408,18 +419,19 @@
         for (int k = 0; k < positive_negative.size(); k++){
  
 
-          std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_" + RES_INT[l] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + RES_INT[l] + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_madspin_precision.root";
-          //std::string filename_generated = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_"+ RES_INT[l] +"_" + PSEUDO_SCALAR[j] + "_generated/hist_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + RES_INT[l] + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_with_z.root";
+          std::string filename_generated_res = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_" + "RES" +"_" + PSEUDO_SCALAR[j] + "_generated/hist_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + "RES" + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_madspin.root";
+          std::string filename_generated_int = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/heavyhiggs_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i]  + "_" + "INT" +"_" + PSEUDO_SCALAR[j] + "_generated/hist_madspin_m" + masses[i] + "_w" + widths[i] + "_" + zeros[i] +  "_" + "INT" + "_" + PSEUDO_SCALAR[j] + "_no_cut" + positive_negative[k] + "_madspin.root";
+          std::string filename_generated_SM = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_no_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_more_spin.root";
 
-          std::cout << "filename_generated: " << filename_generated << std::endl;
+          //std::cout << "filename_generated: " << filename_generated << std::endl;
 
-          std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_more_spins.root";
+          std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + "ri" + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_code_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_code_" + "res_int" + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_juan_code_test.root";
           //std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_no_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_more_spin.root";
           //std::string filename_reweighted = "/nfs/dust/cms/user/meyerlin/ba/framework/runs/" + p_s[j] + "_" + r_i[l] + "_m" + masses[i] + "_w" + widths[i] + "_reweighted_juan_paper_fixed_width/hist_ttbarlo_reweighting_" + pseudo_scalar[j] + "_m" + masses[i] + "_w" + widths[i] + "_juan_paper_" + resonance_interference[l] + "_no_cut" + positive_negative[k] + "_after_reordering_with_madspin_juan_code_test.root";
 
           std::cout << "filename_reweighted: " << filename_reweighted << std::endl;
  
-          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_generated_vs_reweighted_more_spins";
+          std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_generated_vs_reweighted_res_int_SM";
           //std::string folder =  "m" + masses[i] + "_w" + widths[i] + "_" + pseudo_scalar[j] + "_" + res_int[l] + positive_negative[k] + "_madspin_juan_paper_generated_vs_reweighted";
           //std::string folder = "test"; 
           if (mkdir(folder.c_str(), 0777) != 0){
@@ -429,7 +441,7 @@
           std::string filename_histogram = folder + "/" +  std::string("all") + std::string(".pdf");
           std::cout << "filename_histogram: " << filename_histogram << std::endl;
           
-          DrawHistograms(filename_generated, filename_reweighted, folder, filename_histogram, resonance_interference[l], pseudo_scalar[j], masses[i], widths[i]);
+          DrawHistograms(filename_generated_res, filename_generated_int, filename_generated_SM, filename_reweighted, folder, filename_histogram, resonance_interference[l], pseudo_scalar[j], masses[i], widths[i]);
         }
       }
     }
